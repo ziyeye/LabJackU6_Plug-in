@@ -21,14 +21,13 @@
 #define LJU6_DITASK_WARN_SLOP_US     50000
 #define LJU6_DITASK_FAIL_SLOP_US     50000
 
-// dig output: Use a 12-bit word; EIO0-7, CIO0-2, all encoded below
+// Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
 #define LJU6_LASERTRIGGER_FIO   1
-#define LJU6_TCPIN_OFFSET       4
+#define LJU6_TCPIN_OFFSET       4 //Timer offset pin
 
 #define LJU6_CIO_OFFSET         16
 
-//#define LJU6_LEVER1SOLENOID_CIO 16
 #define LJU6_LEVER1_CIO         16
 #define LJU6_LEVER1SOLENOID_CIO 17
 #define LJU6_STROBE_CIO         18
