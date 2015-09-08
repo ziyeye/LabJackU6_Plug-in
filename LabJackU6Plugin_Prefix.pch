@@ -1,0 +1,9 @@
+//
+// Prefix header for all source files of the 'LabJackU6Plugin' target in the 'LabJackU6Plugin' project.
+//
+
+#ifdef __cplusplus
+    #include <MWorksCore/IODevice.h>
+    #include <MWorksCore/Plugin.h>
+    #include <MWorksCore/StandardComponentFactory.h>
+#endif

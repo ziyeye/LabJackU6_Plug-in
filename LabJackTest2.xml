@@ -1,0 +1,62 @@
+<?xml version="1.0" standalone="no"?>
+<monkeyml version="1.0">
+    <io_devices tag="IO Devices">
+        <iodevice type="labjacku6" tag="labjack" pulse_duration="pulse_duration" pulse_on="pulse_on" lever1="lever1" lever2="lever2" lever1_solenoid="lever1_solenoid" lever2_solenoid="lever2_solenoid" laser_trigger="laser_trigger" strobed_digital_word="strobed_digital_word" counter="counter" counter2="counter2" quadrature="quadrature"></iodevice>
+        <iodevice type="nidaq" tag="nidaq" name="Dev1" update_interval="3ms" analog_input_data_interval="1ms" analog_output_data_interval="1ms" assume_multiplexed_adc="YES">
+            <iochannel type="nidaq_digital_input" tag="port0" port_number="0" num_lines_in_port="8" line0="pulse_on_SINK" line1="" line2="lever1_solenoid_SINK" line3="laser_trigger_SINK" line4="" line5="lever2_solenoid_SINK" line6="" line7="" line8="" line9="" line10="" line11="" line12="" line13="" line14="" line15="" line16="" line17="" line18="" line19="" line20="" line21="" line22="" line23="" line24="" line25="" line26="" line27="" line28="" line29="" line30="" line31=""></iochannel>
+            <iochannel type="nidaq_digital_output" tag="port2" port_number="2" num_lines_in_port="8" line0="" line1="lever1_SOURCE" line2="" line3="" line4="lever2_SOURCE" line5="" line6="" line7="" line8="" line9="" line10="" line11="" line12="" line13="" line14="" line15="" line16="" line17="" line18="" line19="" line20="" line21="" line22="" line23="" line24="" line25="" line26="" line27="" line28="" line29="" line30="" line31=""></iochannel>
+        </iodevice>
+    </io_devices>
+    <variables tag="Variables">
+        <variable tag="pulse_duration" scope="global" logging="when_changed" default_value="0" type="integer">
+            <action type="if" tag="If non zero" condition="pulse_duration != 0">
+                <action type="assignment" tag="Set pulse_on" variable="pulse_on" value="1"></action>
+            </action>
+            <action type="if" tag="If zero" condition="pulse_duration == 0">
+                <action type="assignment" tag="Clear pulse_on" variable="pulse_on" value="0"></action>
+            </action>
+        </variable>
+        <variable tag="pulse_on" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="pulse_on_SINK" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever1" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever1_SOURCE" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever2" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever2_SOURCE" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever1_solenoid" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever1_solenoid_SINK" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever2_solenoid" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="lever2_solenoid_SINK" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="laser_trigger" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="laser_trigger_SINK" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="strobed_digital_word" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="counter" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="counter2" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="quadrature" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+        <variable tag="done" scope="global" logging="when_changed" default_value="0" type="integer"></variable>
+    </variables>
+    <sounds tag="Sounds"></sounds>
+    <stimuli tag="Stimuli"></stimuli>
+    <filters tag="Filters"></filters>
+    <optimizers tag="Optimizers"></optimizers>
+    <experiment tag="New Experiment" full_name="" description="">
+        <protocol tag="New Protocol" nsamples="1" sampling_method="cycles" selection="sequential" interruptible="YES">
+            <task_system tag="New Task System" interruptible="YES">
+                <task_system_state tag="Begin State System" interruptible="YES">
+                    <action_marker _unmoveable="1" tag="Actions"></action_marker>
+                    <action type="assignment" tag="Reset done" variable="done" value="0"></action>
+                    <action tag="Start labjack" type="start_device_IO" device="labjack"></action>
+                    <action tag="Start nidaq" type="start_device_IO" device="nidaq"></action>
+                    <transition_marker _unmoveable="1" tag="Transitions"></transition_marker>
+                    <transition type="conditional" tag="If Condition is True, Transition to ..." condition="done" target="Exit State System"></transition>
+                </task_system_state>
+                <task_system_state tag="Exit State System" interruptible="YES">
+                    <action_marker _unmoveable="1" tag="Actions"></action_marker>
+                    <action tag="Stop labjack" type="stop_device_IO" device="labjack"></action>
+                    <action tag="Stop nidaq" type="stop_device_IO" device="nidaq"></action>
+                    <transition_marker _unmoveable="1" tag="Transitions"></transition_marker>
+                    <transition tag="Return to parent task system" type="yield"></transition>
+                </task_system_state>
+            </task_system>
+        </protocol>
+    </experiment>
+</monkeyml>
