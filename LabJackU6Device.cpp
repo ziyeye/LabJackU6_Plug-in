@@ -31,12 +31,10 @@
 static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit manipulation
     (  (0x01 << LJU6_REWARD_FIO)                       // FIO
      | (0x01 << LJU6_LASERTRIGGER_FIO)),
-     //| (0x00 << LJU6_LEVER1_FIO)
-     //| (0x01 << LJU6_LEVER1SOLENOID_FIO)),
         0xff,                                          // EIO
-    (  (0x00 << (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET))
+    (  (0x00 << (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET))   // CIO
      | (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
-     | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET)))  //CIO
+     | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET)))  
 };
 
 // Copied from libusb.h
@@ -416,12 +414,7 @@ bool LabJackU6Device::initialize() {
     if (!ljU6WriteDO(ljHandle, LJU6_STROBE_CIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO   
     this->strobedDigitalWord->setValue(Datum(M_INTEGER, 0));
-    
-    /*
-    if (!ljU6WriteDO(ljHandle, LJU6_LEVER1_FIO, 0) == 1)
-        return false; // merror is done in ljU6WriteDO
-    this->lever1->setValue(Datum(M_BOOLEAN, 0));
-    */
+
     
     return true;
 }
@@ -618,7 +611,7 @@ bool LabJackU6Device::ljU6ConfigPorts(HANDLE Handle) {
     //       sendDataBuff[0], sendDataBuff[1], sendDataBuff[2], sendDataBuff[3],
     //       sendDataBuff[4], sendDataBuff[5], sendDataBuff[6]);
     
-    if(ehFeedback(Handle, sendDataBuff, 7, &Errorcode, &ErrorFrame, NULL, 0) < 0) {
+    if(ehFeedback(Handle, sendDataBuff, sizeof(sendDataBuff), &Errorcode, &ErrorFrame, NULL, 0) < 0) {
         mwarning(M_IODEVICE_MESSAGE_DOMAIN, "bug: ehFeedback error, see stdout");  // note we will get a more informative error on stdout
         return false;  
     }
@@ -688,33 +681,37 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
 
     // debug
     //mprintf("FIO 0x%x EIO 0x%x CIO 0x%x", *fioState, *eioState, *cioState);
+    // debug timer and counter
     //mprintf("*****************Output q1:%02x q2:%02x q3:%02x q4:%02x c1:%02x c2:%02x c3:%02x c4:%02x c1:%02x c2:%02x c3:%02x c4:%02x\n",
     //       recDataBuff[3], recDataBuff[4], recDataBuff[5], recDataBuff[6],
     //       recDataBuff[7], recDataBuff[8], recDataBuff[9], recDataBuff[10], recDataBuff[11],
     //      recDataBuff[12], recDataBuff[13], recDataBuff[14]);
 
-    // Unpack counter values and timer value (i.e. quadrature)
+    // Unpack timer value (i.e. quadrature)
     std::int32_t quadratureValue;
     for (size_t i = 0; i < 4; i++) {
+    	// timer output has 4 bit and two channels have the same output
         ((uint8 *)(&quadratureValue))[i] = recDataBuff[3 + i];
     }
     quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
     //mprintf("*****Quadrature = %d *******", quadratureValue);
+    
     // Update quadrature variable (only if quadrature value has changed)
     if (quadrature->getValue().getInteger() != quadratureValue) {
         quadrature->setValue(long(quadratureValue));
     }
     
+    // Unpack counter value
     std::int32_t counterValue[2];
-    
     for (size_t j = 0; j < 2; j++) {
         for (size_t i = 0; i < 4; i++) {
+            // each counter output has 4 bit
             ((uint8 *)(counterValue + j))[i] = recDataBuff[3 + 4*(j+1) + i];
         }
-        //mprintf("*****Counter = %d *******", counterValue[0]);
         counterValue[j] = CFSwapInt32LittleToHost(counterValue[j]);  // Convert to host byte order
     }
-    //mprintf("*****CounterCFSWap = %d *******", counterValue[0]);
+    //mprintf("*****Counter = %d *******", counterValue[0]);
+    
     // Update counter variables (only if counter value has changed)
     if (counter->getValue().getInteger() != counterValue[0]) {
         counter->setValue(long(counterValue[0]));
@@ -765,19 +762,19 @@ bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
 	sendDataBuff[2] = 0xff;			// EIO: update
 	sendDataBuff[3] = 0x00;			// CIO: don't update
 	sendDataBuff[4] = 0x00;			// FIO: data
-	sendDataBuff[5] = outEioBits;	// EIO: data
-	sendDataBuff[6] = 0x00;	        // CIO: data
+	sendDataBuff[5] = outEioBits;	        // EIO: data
+	sendDataBuff[6] = 0x00;	                // CIO: data
 	
 	sendDataBuff[7] = 5;			// WaitShort
 	sendDataBuff[8] = 1;			// Time(*128us)
 	
 	sendDataBuff[9]  = 11;			// BitStateWrite, update CIO2
-	sendDataBuff[10] = 18 | 0x80;	// first 4 bits: port # (CIO2); last bit, state
+	sendDataBuff[10] = 18 | 0x80;	// bits (0-4): port # (CIO2); last bit(bit 7), state
 	
 	sendDataBuff[11] = 5;			// WaitShort
 	sendDataBuff[12] = 1;			// Time(*128us)
 	
-    sendDataBuff[13] = 27;			// PortStateWrite, 7 bytes total
+        sendDataBuff[13] = 27;			// PortStateWrite, 7 bytes total
 	sendDataBuff[14] = 0x00;		// FIO: don't update
 	sendDataBuff[15] = 0xff;		// EIO: update
 	sendDataBuff[16] = 0x04;		// CIO: update CIO2
@@ -789,12 +786,12 @@ bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
 	sendDataBuff[21] = 0xff;		//  FIO: update
 	sendDataBuff[22] = 0xff;		//  EIO: update
 	sendDataBuff[23] = 0xff;		//  CIO: update
-	sendDataBuff[24] = ljPortDir[0];//  FIO hardcoded above
-	sendDataBuff[25] = ljPortDir[1];//  EIO hardcoded above
-	sendDataBuff[26] = ljPortDir[2];//  CIO hardcoded above
+	sendDataBuff[24] = ljPortDir[0];        //  FIO hardcoded above
+	sendDataBuff[25] = ljPortDir[1];        //  EIO hardcoded above
+	sendDataBuff[26] = ljPortDir[2];        //  CIO hardcoded above
 
     // ehFeedback (                    size of sendDataBuff                 )
-    if(ehFeedback(Handle, sendDataBuff, 27, &Errorcode, &ErrorFrame, NULL, 0) < 0) {
+    if(ehFeedback(Handle, sendDataBuff, sizeof(sendDataBuff), &Errorcode, &ErrorFrame, NULL, 0) < 0) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: ehFeedback error, see stdout");  // note we will get a more informative error on stdout
         return false;
     }
