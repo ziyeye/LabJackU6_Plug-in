@@ -25,7 +25,7 @@ Used for interfacing to a LabJack U6
                       pulse_on="" 
                       lever1=""
                       lever1_solenoid=""
-                      laser_trigger=""
+                      trial_laser_powerMw=""
                       strobed_digital_word=""
                       counter=""
                       counter2=""

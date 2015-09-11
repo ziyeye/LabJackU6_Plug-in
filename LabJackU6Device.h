@@ -11,7 +11,14 @@
 #ifndef	_LJU6_DEVICE_H_
 #define _LJU6_DEVICE_H_
 
+
 #include <boost/noncopyable.hpp>
+#include <stdio.h>
+#include <stdlib.h>
+#include <float.h>
+#include <unistd.h>
+#include <string.h>
+#include "u6.h"
 #include "labjackusb.h"
 
 #undef VERBOSE_IO_DEVICE
@@ -21,17 +28,19 @@
 #define LJU6_DITASK_WARN_SLOP_US     50000
 #define LJU6_DITASK_FAIL_SLOP_US     50000
 
+#define TABLE_SIZE              51
+
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
-#define LJU6_LASERTRIGGER_FIO   1
-#define LJU6_TCPIN_OFFSET       4 //Timer offset pin
+#define LJU6_LEVER1_FIO         1
+#define LJU6_TCPIN_OFFSET       4 // Timer offset pin
 
 #define LJU6_CIO_OFFSET         16
 
-#define LJU6_LEVER1_CIO         16
-#define LJU6_LEVER1SOLENOID_CIO 17
-#define LJU6_STROBE_CIO         18
+#define LJU6_LEVER1SOLENOID_CIO 16
+#define LJU6_STROBE_CIO         17
 
+#define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 
 BEGIN_NAMESPACE_MW
 
@@ -55,13 +64,14 @@ protected:
 	boost::mutex				ljU6DriverLock;		
 	MWTime						highTimeUS;  // Used to compute length of scheduled high/low pulses
 	
-	HANDLE                      ljHandle;
+	HANDLE                      ljHandle;   // LabJack device handle
+    //u6CalibrationInfo           CalibInfo;  // LabJack calibration
     
 	boost::shared_ptr <Variable> pulseDuration;
 	boost::shared_ptr <Variable> pulseOn;
 	boost::shared_ptr <Variable> lever1;
     boost::shared_ptr <Variable> lever1Solenoid;
-	boost::shared_ptr <Variable> laserTrigger;
+	boost::shared_ptr <Variable> tTrialLaserPowerMw;
 	boost::shared_ptr <Variable> strobedDigitalWord;
 	boost::shared_ptr <Variable> counter;
 	boost::shared_ptr <Variable> counter2;
@@ -73,10 +83,14 @@ protected:
 	boost::mutex active_mutex;
 	bool deviceIOrunning;
 	
+    double voltage[TABLE_SIZE];    // voltage array of LED table
+    double pmw[TABLE_SIZE];        // LED power array
+    
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
 	bool ljU6ReadDI(HANDLE Handle, long Channel, long* State);
 	bool ljU6WriteDO(HANDLE Handle, long Channel, long State);
+    bool ljU6WriteLaser(HANDLE Handle, double laserPower);
 	bool ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord);
 	long ljU6ReadPorts(HANDLE Handle, unsigned int *fioState, unsigned int *eioState, unsigned int *cioState);
 
@@ -86,7 +100,7 @@ public:
     static const std::string PULSE_ON;
     static const std::string LEVER1;
     static const std::string LEVER1_SOLENOID;
-    static const std::string LASER_TRIGGER;
+    static const std::string TRIAL_LASER_POWERMW;
     static const std::string STROBED_DIGITAL_WORD;
     static const std::string COUNTER;
     static const std::string COUNTER2;
@@ -108,15 +122,19 @@ public:
 	void detachPhysicalDevice();
 	void variableSetup();
 	bool setupU6PortsAndRestartIfDead();
-	
+    int  loadLEDTable(double *voltage, double *pmw );
 	
 	bool readLeverDI(bool *outLever1);
 	void pulseDOHigh(int pulseLengthUS);
 	void pulseDOLow();
 	void leverSolenoidDO(bool state);
-	void laserDO(bool state);
+	void laserDO(double laserPower);
 	void strobedDigitalWordDO(unsigned int digWord);
 	
+    // two functions to do linear interpolation on LED power
+    int findNearestNeighbourIndex( double value, double *x, int len );
+    void interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy);
+        
 	virtual void dispense(Datum data){
 		if(getActive()){
 			bool doReward = (bool)data;
@@ -137,8 +155,8 @@ public:
 		
 	virtual void setLaserTrigger(Datum data) {
 		if (getActive()) {
-			bool laserState = (bool)data;
-			this->laserDO(laserState);
+			double Power = (double)data;
+			this->laserDO(Power);
 		}
 	}
 
