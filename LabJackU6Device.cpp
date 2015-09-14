@@ -36,7 +36,8 @@ static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit m
         0xff,                                                   // EIO
     //(  (0x00 << (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET))          // CIO
      ( (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
-     | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET)))
+     | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET))
+     | (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET)))
 };
 
 // Copied from libusb.h
@@ -57,6 +58,7 @@ const std::string LabJackU6Device::PULSE_ON("pulse_on");
 const std::string LabJackU6Device::LEVER1("lever1");
 const std::string LabJackU6Device::LEVER1_SOLENOID("lever1_solenoid");
 const std::string LabJackU6Device::TRIAL_LASER_POWERMW("trial_laser_powerMw");
+const std::string LabJackU6Device::LASER_TRIGGER("laser_trigger");
 const std::string LabJackU6Device::STROBED_DIGITAL_WORD("strobed_digital_word");
 const std::string LabJackU6Device::COUNTER("counter");
 const std::string LabJackU6Device::COUNTER2("counter2");
@@ -94,6 +96,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(LEVER1, "false");
     info.addParameter(LEVER1_SOLENOID, "false");
     info.addParameter(TRIAL_LASER_POWERMW, "0");
+    info.addParameter(LASER_TRIGGER, "false");
     info.addParameter(STROBED_DIGITAL_WORD, "0");
     info.addParameter(COUNTER, "0");
     info.addParameter(COUNTER2, "0");
@@ -110,6 +113,7 @@ pulseOn(parameters[PULSE_ON]),
 lever1(parameters[LEVER1]),
 lever1Solenoid(parameters[LEVER1_SOLENOID]),
 tTrialLaserPowerMw(parameters[TRIAL_LASER_POWERMW]),
+laserTrigger(parameters[LASER_TRIGGER]),
 strobedDigitalWord(parameters[STROBED_DIGITAL_WORD]),
 counter(parameters[COUNTER]),
 counter2(parameters[COUNTER2]),
@@ -242,6 +246,17 @@ void LabJackU6Device::laserDO(double Power) {
     boost::mutex::scoped_lock lock(ljU6DriverLock);
     
     LabJackU6Device::ljU6WriteLaser(ljHandle, Power);
+    
+}
+
+void LabJackU6Device::laserDO2(bool state) {
+    // Takes and releases driver lock
+    
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
+    
+    if (ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, state) != true) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing laser trigger state; device likely to be broken (state %d)", state);
+    }
     
 }
 
@@ -426,6 +441,9 @@ bool LabJackU6Device::initialize() {
         return false; // merror is done in ljU6WriteDO
     this->tTrialLaserPowerMw->setValue(Datum(M_FLOAT, 0));
     
+    if (!ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+    this->laserTrigger->setValue(Datum(M_BOOLEAN, 0));
     
     if (!ljU6WriteDO(ljHandle, LJU6_STROBE_CIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
@@ -577,10 +595,15 @@ void LabJackU6Device::variableSetup() {
     shared_ptr<VariableNotification> notif2(new LabJackU6DeviceL1SNotification(weak_self_ref));
     doL1S->addNotification(notif2);
     
-    // laserTrigger
+    // laserTrigger for LED
     shared_ptr<Variable> doLT = this->tTrialLaserPowerMw;
     shared_ptr<VariableNotification> notif3(new LabJackU6DeviceLTNotification(weak_self_ref));
     doLT->addNotification(notif3);
+    
+    // laserTrigger for Laser
+    shared_ptr<Variable> doLT2 = this->laserTrigger;
+    shared_ptr<VariableNotification> notif3a(new LabJackU6DeviceLT2Notification(weak_self_ref));
+    doLT2->addNotification(notif3a);
     
     // strobedDigitalWord
     shared_ptr<Variable> doSDW = this->strobedDigitalWord;

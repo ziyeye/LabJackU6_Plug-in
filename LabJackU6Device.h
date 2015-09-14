@@ -39,6 +39,7 @@
 
 #define LJU6_LEVER1SOLENOID_CIO 16
 #define LJU6_STROBE_CIO         17
+#define LJU6_LASERTRIGGER_CIO   18
 
 #define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 
@@ -72,6 +73,7 @@ protected:
 	boost::shared_ptr <Variable> lever1;
     boost::shared_ptr <Variable> lever1Solenoid;
 	boost::shared_ptr <Variable> tTrialLaserPowerMw;
+    boost::shared_ptr <Variable> laserTrigger;
 	boost::shared_ptr <Variable> strobedDigitalWord;
 	boost::shared_ptr <Variable> counter;
 	boost::shared_ptr <Variable> counter2;
@@ -101,6 +103,7 @@ public:
     static const std::string LEVER1;
     static const std::string LEVER1_SOLENOID;
     static const std::string TRIAL_LASER_POWERMW;
+    static const std::string LASER_TRIGGER;
     static const std::string STROBED_DIGITAL_WORD;
     static const std::string COUNTER;
     static const std::string COUNTER2;
@@ -129,6 +132,7 @@ public:
 	void pulseDOLow();
 	void leverSolenoidDO(bool state);
 	void laserDO(double laserPower);
+    void laserDO2(bool state);
 	void strobedDigitalWordDO(unsigned int digWord);
 	
     // two functions to do linear interpolation on LED power
@@ -160,6 +164,13 @@ public:
 		}
 	}
 
+    virtual void setLaserTrigger2(Datum data) {
+        if (getActive()) {
+            bool laserState = (bool)data;
+            this->laserDO2(laserState);
+        }
+    }
+    
 	virtual void setStrobedDigitalWord(Datum data) {
 		if (getActive()) {
 			unsigned int digWord = (int)data;
@@ -218,7 +229,7 @@ public:
 	}
 };
 
-	
+
 	
 class LabJackU6DeviceLTNotification : public VariableNotification {
 		
@@ -233,6 +244,20 @@ class LabJackU6DeviceLTNotification : public VariableNotification {
 			shared_daq->setLaserTrigger(data);
 		}
 	};
+
+class LabJackU6DeviceLT2Notification : public VariableNotification {
+    
+protected:
+    weak_ptr<LabJackU6Device> daq;
+public:
+    LabJackU6DeviceLT2Notification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->setLaserTrigger2(data);
+    }
+};
 
 class LabJackU6DeviceSDWNotification : public VariableNotification {
 		
