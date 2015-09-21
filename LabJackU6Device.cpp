@@ -964,6 +964,9 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
         inname = "/Users/hullglick/Downloads/test-rig_LED.txt";
         //mprintf("%s\n",inname);
     }
+    else if (strcmp(hostname, "test-rig-2.dhe.duke.edu") == 0)  {
+        inname = "/Users/hullglick/Documents/LED_Table/test-rig-2.txt";
+    }
     else if (strcmp(hostname, "hullglick5") == 0)  {
         inname = "/Users/hullglick/Downloads/test-rig_LED.txt";
     }
