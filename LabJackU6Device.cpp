@@ -949,20 +949,29 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
     gethostname(hostname, 1024);
     
     if (strcmp(hostname, "hullglick1") == 0) {
-        inname = "/Users/ziye/Downloads/rig1.txt";
+        inname = "/Users/hullglick/Downloads/rig1.txt";
     }
     else if (strcmp(hostname, "hullglick2") == 0)  {
-        inname = "/Users/ziye/Downloads/rig2.txt";
+        inname = "/Users/hullglick/Downloads/rig2.txt";
     }
     else if (strcmp(hostname, "hullglick3") == 0)  {
-        inname = "/Users/ziye/Downloads/rig3.txt";
+        inname = "/Users/hullglick/Downloads/rig3.txt";
     }
     else if (strcmp(hostname, "hullglick4") == 0)  {
-        inname = "/Users/ziye/Downloads/rig4.txt";
+        inname = "/Users/hullglick/Downloads/rig4.txt";
     }
     else if (strcmp(hostname, "test-rig.dhe.duke.edu") == 0)  {
-        inname = "/Users/hullglick/Downloads/rig1-150623.txt";
+        inname = "/Users/hullglick/Downloads/test-rig_LED.txt";
         //mprintf("%s\n",inname);
+    }
+    else if (strcmp(hostname, "hullglick5") == 0)  {
+        inname = "/Users/hullglick/Downloads/test-rig_LED.txt";
+    }
+    else if (strcmp(hostname, "hullglicksmini2.dhe.duke.edu") == 0)  {  //imaging rig
+        inname = "/Users/hullglick/Downloads/test-rig_LED.txt";
+    }
+    else if (strcmp(hostname, "HullGlicks-Mac-mini-6.local") == 0)  {
+        inname = "/Users/hullglick/Downloads/test-rig_LED.txt";
     }
     else {
         printf("Invalid hostname.\n");
