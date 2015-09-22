@@ -3,7 +3,7 @@
  *
  *  Created by Mark Histed on 4/21/2010
  *    (based on Nidaq plugin code by Jon Hendry and John Maunsell)
- *  
+ *
  *  08-26-2015 Ziye -- changed LJU6 Ports Macros
  *                     removed Lever2 and Lever2Solenoid
  */
@@ -24,7 +24,7 @@
 #undef VERBOSE_IO_DEVICE
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
-#define LJU6_DITASK_UPDATE_PERIOD_US 15000    
+#define LJU6_DITASK_UPDATE_PERIOD_US 15000
 #define LJU6_DITASK_WARN_SLOP_US     50000
 #define LJU6_DITASK_FAIL_SLOP_US     50000
 
@@ -38,8 +38,8 @@
 #define LJU6_CIO_OFFSET         16
 
 #define LJU6_LEVER1SOLENOID_CIO 16
-#define LJU6_STROBE_CIO         17
-#define LJU6_LASERTRIGGER_CIO   18
+#define LJU6_STROBE_CIO         18
+#define LJU6_LASERTRIGGER_CIO   17
 
 #define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 
@@ -49,20 +49,20 @@ BEGIN_NAMESPACE_MW
 class LabJackU6DeviceOutputNotification;
 
 class LabJackU6Device : public IODevice, boost::noncopyable {
-
-protected:  
+    
+protected:
 	
 	bool						connected;
-
+    
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
-		
+    
 	boost::shared_ptr <Scheduler> scheduler;
 	shared_ptr<ScheduleTask>	pulseScheduleNode;
 	shared_ptr<ScheduleTask>	pollScheduleNode;
-	boost::mutex				pulseScheduleNodeLock;				
-	boost::mutex				pollScheduleNodeLock;				
-	boost::mutex				ljU6DriverLock;		
+	boost::mutex				pulseScheduleNodeLock;
+	boost::mutex				pollScheduleNodeLock;
+	boost::mutex				ljU6DriverLock;
 	MWTime						highTimeUS;  // Used to compute length of scheduled high/low pulses
 	
 	HANDLE                      ljHandle;   // LabJack device handle
@@ -78,7 +78,7 @@ protected:
 	boost::shared_ptr <Variable> counter;
 	boost::shared_ptr <Variable> counter2;
 	boost::shared_ptr <Variable> quadrature;
-
+    
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
 	bool active;
@@ -95,7 +95,7 @@ protected:
     bool ljU6WriteLaser(HANDLE Handle, double laserPower);
 	bool ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord);
 	long ljU6ReadPorts(HANDLE Handle, unsigned int *fioState, unsigned int *eioState, unsigned int *cioState);
-
+    
     
 public:
     static const std::string PULSE_DURATION;
@@ -115,11 +115,11 @@ public:
 	~LabJackU6Device();
 	
 	virtual bool startup();
-	virtual bool shutdown();	
+	virtual bool shutdown();
 	//       virtual bool attachPhysicalDevice();		DEPRECATED IN 0.4.4
 	virtual bool initialize();
 	virtual bool startDeviceIO();
-	virtual bool stopDeviceIO();		
+	virtual bool stopDeviceIO();
 	
 	virtual bool pollAllDI();
 	void detachPhysicalDevice();
@@ -138,32 +138,32 @@ public:
     // two functions to do linear interpolation on LED power
     int findNearestNeighbourIndex( double value, double *x, int len );
     void interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy);
-        
+    
 	virtual void dispense(Datum data){
 		if(getActive()){
 			bool doReward = (bool)data;
 			
-			// Bring DO high for pulseDuration 
+			// Bring DO high for pulseDuration
 			if (doReward) {
 				this->pulseDOHigh(pulseDuration->getValue());
 			}
 		}
 	}
-	virtual void setLever1Solenoid(Datum data) {   
+	virtual void setLever1Solenoid(Datum data) {
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "set 1");
 		if (getActive()) {
 			bool lever1SolenoidState = (bool)data;
 			this->leverSolenoidDO(lever1SolenoidState);
 		}
 	}
-		
+    
 	virtual void setLaserTrigger(Datum data) {
 		if (getActive()) {
 			double Power = (double)data;
 			this->laserDO(Power);
 		}
 	}
-
+    
     virtual void setLaserTrigger2(Datum data) {
         if (getActive()) {
             bool laserState = (bool)data;
@@ -200,23 +200,23 @@ public:
 
 
 class LabJackU6DeviceOutputNotification : public VariableNotification {
-        /* reward variable */
-	protected:
-		weak_ptr<LabJackU6Device> daq;
+    /* reward variable */
+protected:
+    weak_ptr<LabJackU6Device> daq;
 	
-	public:
-		LabJackU6DeviceOutputNotification(weak_ptr<LabJackU6Device> _daq){
-			daq = _daq;
-		}
+public:
+    LabJackU6DeviceOutputNotification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
 	
-		virtual void notify(const Datum& data, MWTime timeUS){
-			shared_ptr<LabJackU6Device> shared_daq(daq);
-			shared_daq->dispense(data);
-		}
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->dispense(data);
+    }
 };
 
 class LabJackU6DeviceL1SNotification : public VariableNotification {
-
+    
 protected:
 	weak_ptr<LabJackU6Device> daq;
 public:
@@ -230,20 +230,20 @@ public:
 };
 
 
-	
+
 class LabJackU6DeviceLTNotification : public VariableNotification {
-		
-	protected:
-		weak_ptr<LabJackU6Device> daq;
-	public:
-		LabJackU6DeviceLTNotification(weak_ptr<LabJackU6Device> _daq){
-			daq = _daq;
-		}
-		virtual void notify(const Datum& data, MWTime timeUS){
-			shared_ptr<LabJackU6Device> shared_daq(daq);
-			shared_daq->setLaserTrigger(data);
-		}
-	};
+    
+protected:
+    weak_ptr<LabJackU6Device> daq;
+public:
+    LabJackU6DeviceLTNotification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->setLaserTrigger(data);
+    }
+};
 
 class LabJackU6DeviceLT2Notification : public VariableNotification {
     
@@ -260,19 +260,19 @@ public:
 };
 
 class LabJackU6DeviceSDWNotification : public VariableNotification {
-		
-	protected:
-		weak_ptr<LabJackU6Device> daq;
-	public:
-		LabJackU6DeviceSDWNotification(weak_ptr<LabJackU6Device> _daq){
-			daq = _daq;
-		}
-		virtual void notify(const Datum& data, MWTime timeUS){
-			shared_ptr<LabJackU6Device> shared_daq(daq);
-			shared_daq->setStrobedDigitalWord(data);
-		}
-	};
-	
+    
+protected:
+    weak_ptr<LabJackU6Device> daq;
+public:
+    LabJackU6DeviceSDWNotification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->setStrobedDigitalWord(data);
+    }
+};
+
 
 END_NAMESPACE_MW
 
