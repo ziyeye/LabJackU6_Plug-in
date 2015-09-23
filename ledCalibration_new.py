@@ -39,6 +39,10 @@ d.getCalibrationData()
 #pl.ylabel('Calculated LED Output (mW)')
 
 # loop and collect data
+DAC0_value = d.voltageToDACBits(2, dacNumber = 0, is16Bits = False)
+d.getFeedback(u6.DAC0_8(DAC0_value))
+scale = 0.64/d.getAIN(0) 
+
 vLevels = np.linspace(startV, stopV, nVPts)
 respV = vLevels*np.nan
 for (tVNum,tV) in enumerate(vLevels):
@@ -49,14 +53,14 @@ for (tVNum,tV) in enumerate(vLevels):
     #voltsInBits = [int((volts/voltageSource)*maxVal)]
     for val in volts:
         #dac.setVoltage(val) # np.ones(2) to np.ones(100)
-        DAC0_value = d.voltagetoDACBits(val, dacNumber = 0, is16Bits = False)
+        DAC0_value = d.voltageToDACBits(val, dacNumber = 0, is16Bits = False)
         d.getFeedback(u6.DAC0_8(DAC0_value))
-    #time.sleep(2)
+        time.sleep(2)
     
     # read resulting analog
     #tVolts = adc.readADCSingleEnded(0,4096, 250)/1000
     ainValue = d.getAIN(0)
-    tDataCol = (ainValue)#*rangeValue)/2
+    tDataCol = (ainValue*scale)#*rangeValue)/2
     #tDataCol = tVolts
     print tDataCol
     
@@ -76,16 +80,17 @@ for (tVNum,tV) in enumerate(vLevels):
     #pl.close
 
     #pl.pause(1.0)
-
+DAC0_value = d.voltageToDACBits(0, dacNumber = 0, is16Bits = False)
+d.getFeedback(u6.DAC0_8(DAC0_value))
 print 'Press enter to write LUT and exit'
 nodata=raw_input()
 pl.close
-outName = os.path.expanduser('/home/pi/Desktop/testing.txt')
+outName = os.path.expanduser('~/Documents/LED_Table/testing.txt')
 print outName
 
 fd = open(outName, 'w')
 for (a,b) in zip(vLevels, respV):
     fd.write('%7.4f %7.6f\n' % (a,b))
 fd.close()
-os.system("sshpass -p hullglick rsync ~/Desktop/testing.txt hullglick@test-rig-2.dhe.duke.edu:~/Documents/LED_Table" )
+#os.system("sshpass -p hullglick rsync ~/Desktop/testing.txt hullglick@test-rig-2.dhe.duke.edu:~/Documents/LED_Table" )
 #dac.setVoltage(-1)
