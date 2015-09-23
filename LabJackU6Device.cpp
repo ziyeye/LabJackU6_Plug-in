@@ -949,23 +949,23 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
     gethostname(hostname, 1024);
     
     if (strcmp(hostname, "hullglick1") == 0) {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else if (strcmp(hostname, "hullglick2") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else if (strcmp(hostname, "hullglick3") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else if (strcmp(hostname, "hullglick4") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else if (strcmp(hostname, "test-rig.dhe.duke.edu") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
         //mprintf("%s\n",inname);
     }
     else if (strcmp(hostname, "test-rig-2.dhe.duke.edu") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else if (strcmp(hostname, "hullglick5") == 0)  {
         inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
