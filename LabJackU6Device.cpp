@@ -66,14 +66,16 @@ const std::string LabJackU6Device::QUADRATURE("quadrature");
 
 
 /* Notes to self MH 100422
+ Notes 09252015
+ 
  This is how we do setup and cleanup
  * Constructor [called at plugin load time]
  Sets instant variables
  * core calls attachPhysicalDevice()
  -> variableSetup()
- * startup()  [called by core; once, I think]
- * startDeviceIO()  [called by core; every trial]
- * stopDeviceIO()   [called by core; every trial]
+ * startup()  [called by core; once]
+ * startDeviceIO()  [called by core; every time start button is pressed]
+ * stopDeviceIO()   [called by core; every time stop button is pressed]
  * shutdown() [called by core; once, I think]
  * Destructor
  -> detachPhysicalDevice
@@ -117,7 +119,6 @@ laserTrigger(parameters[LASER_TRIGGER]),
 strobedDigitalWord(parameters[STROBED_DIGITAL_WORD]),
 counter(parameters[COUNTER]),
 counter2(parameters[COUNTER2]),
-counterReset(-1),
 quadrature(parameters[QUADRATURE]),
 deviceIOrunning(false),
 ljHandle(NULL),
@@ -298,13 +299,7 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
     
     MWTime st = clock->getCurrentTimeUS();
     
-    if (trial==0) {
-        counterReset=-1;
-    } else {
-        counterReset=0;
-    }
     
-    mprintf("trial = %d\n",trial);
     if (ljU6ReadPorts(ljHandle, &fioState, &eioState, &cioState) != 0 ) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Error reading DI, stopping IO and returning FALSE");
         stopDeviceIO();  // We are seeing USB errors causing this, and the U6 doesn't work anyway, so might as well stop the threads
@@ -326,7 +321,7 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
                      pct);
         }
     }
-    //counterReset=0;
+ 
     //mprintf("*******Lever1State: 0x%x", fioState);
     //lever1State = (cioState >> (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET)) & 0x01;
     lever1State = (fioState >> LJU6_LEVER1_FIO) & 0x01;
@@ -462,7 +457,6 @@ bool LabJackU6Device::initialize() {
         return false; // merror is done in ljU6WriteDO
     this->strobedDigitalWord->setValue(Datum(M_INTEGER, 0));
     
-    //counterReset = -1;
     //mprintf("Initialize()\n");
     return true;
 }
@@ -499,12 +493,11 @@ bool LabJackU6Device::setupU6PortsAndRestartIfDead() {
         }
     }
     //mprintf("setupU6PortsAndRestartIfDead()\n");
-    //counterReset = -1;
     return true;
 }
 
 bool LabJackU6Device::startup() {
-    //counterReset=0;
+
     // Do nothing right now
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf("LabJackU6Device: startup");
@@ -543,7 +536,6 @@ bool LabJackU6Device::startDeviceIO(){
     setActive(true);
     deviceIOrunning = true;
     
-    //counterReset=-1;
     trial=0;
     
     shared_ptr<LabJackU6Device> this_one = shared_from_this();
@@ -719,9 +711,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     sendDataBuff[0] = 26;       //IOType is PortStateRead
     
-    mprintf("CounterReset=%d\n", counterReset);
-    
-    if (counterReset == -1) {
+    if (trial == 0) {
         sendDataBuff[1] = 42;       //IOType is Timer0
         sendDataBuff[2] = 1;        //  - Don't reset timer
         sendDataBuff[3] = 0;        //  - Value LSB (ignored)
@@ -1005,21 +995,21 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
     else if (strcmp(hostname, "hullglick4") == 0)  {
         inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
-    else if (strcmp(hostname, "test-rig.local") == 0)  {
+    else if (strcmp(hostname, "test-rig.local") == 0 || strcmp(hostname, "test-rig.dhe.duke.edu") == 0)  {
         inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
         //mprintf("%s\n",inname);
     }
-    else if (strcmp(hostname, "test-rig-2.dhe.duke.edu") == 0)  {
+    else if (strcmp(hostname, "test-rig-2.local") == 0 || strcmp(hostname, "test-rig-2.dhe.duke.edu") == 0)  {
         inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else if (strcmp(hostname, "hullglick5") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
-    else if (strcmp(hostname, "hullglicksmini2.dhe.duke.edu") == 0)  {  //imaging rig
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+    else if (strcmp(hostname, "hullglicksmini2.local") == 0 || strcmp(hostname, "hullglicksmini2.dhe.duke.edu") == 0)  {  //imaging rig
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
-    else if (strcmp(hostname, "HullGlicks-Mac-mini-6.local") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/test-rig_LED.txt";
+    else if (strcmp(hostname, "HullGlicks-Mac-mini-6.local") == 0 || strcmp(hostname, "HullGlicks-Mac-mini-6.dhe.duke.edu") == 0)  {
+        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
     else {
         printf("Invalid hostname.\n");
