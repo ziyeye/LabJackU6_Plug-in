@@ -56,8 +56,7 @@ protected:
     
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
-    int counterReset;
-    int trial;
+    unsigned long int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
 	shared_ptr<ScheduleTask>	pulseScheduleNode;
