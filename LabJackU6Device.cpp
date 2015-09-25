@@ -14,7 +14,7 @@
  *             change 12 bit strobed word to 8 bit (turn off CIO)
  *             turn on both timer(2) and counter(2)
  *             change Lever1 state to ciostate in ReadLeverDI
- * 
+ *
  * 09-10-2015 Ziye - make changes on LaserTrigger so that the voltage is directly
  *            outputed from DAC0 instead of FIO3
  */
@@ -32,10 +32,10 @@
 
 static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit manipulation
     (  (0x01 << LJU6_REWARD_FIO)                                // FIO
-    |  (0x00 << LJU6_LEVER1_FIO) ),
-        0xff,                                                   // EIO
+     |  (0x00 << LJU6_LEVER1_FIO) ),
+    0xff,                                                   // EIO
     //(  (0x00 << (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET))          // CIO
-     ( (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
+    ( (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET)))
 };
@@ -117,9 +117,11 @@ laserTrigger(parameters[LASER_TRIGGER]),
 strobedDigitalWord(parameters[STROBED_DIGITAL_WORD]),
 counter(parameters[COUNTER]),
 counter2(parameters[COUNTER2]),
+counterReset(-1),
 quadrature(parameters[QUADRATURE]),
 deviceIOrunning(false),
 ljHandle(NULL),
+trial(0),
 //CalibInfo({0}),
 lastLever1Value(-1),  // -1 means always report first value
 lastLever1TransitionTimeUS(0)
@@ -295,6 +297,14 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
     
     
     MWTime st = clock->getCurrentTimeUS();
+    
+    if (trial==0) {
+        counterReset=-1;
+    } else {
+        counterReset=0;
+    }
+    
+    mprintf("trial = %d\n",trial);
     if (ljU6ReadPorts(ljHandle, &fioState, &eioState, &cioState) != 0 ) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Error reading DI, stopping IO and returning FALSE");
         stopDeviceIO();  // We are seeing USB errors causing this, and the U6 doesn't work anyway, so might as well stop the threads
@@ -316,15 +326,17 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
                      pct);
         }
     }
-    
+    //counterReset=0;
     //mprintf("*******Lever1State: 0x%x", fioState);
     //lever1State = (cioState >> (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET)) & 0x01;
     lever1State = (fioState >> LJU6_LEVER1_FIO) & 0x01;
-
+    
     // software debouncing
     debounce_bit(&lever1State, &lastLever1State, &lastLever1TransitionTimeUS, clock);
     
     *outLever1 = lever1State;
+    
+    trial++;
     
     return(1);
 }
@@ -376,6 +388,7 @@ bool LabJackU6Device::pollAllDI() {
         
         lever1->setValue(Datum(lever1Value));
         lastLever1Value = lever1Value;
+        
     }
     
     return true;
@@ -399,7 +412,7 @@ bool LabJackU6Device::initialize() {
     ljHandle = openUSBConnection(-1);						    // Open first available U6 on USB
     ljU6DriverLock.unlock();
     
-       
+    
     if (ljHandle == NULL) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Error opening LabJack U6.  Is it connected to USB?");
         return false;														// no cleanup needed
@@ -417,10 +430,10 @@ bool LabJackU6Device::initialize() {
     }
     
     /*          // check if LED variable array
-    int i = 0;
-    for (i = 0; i < TABLE_SIZE; i++){
-        mprintf("voltage: %lg and pmw: %lg .\n", voltage[i], pmw[i]);
-    }*/
+     int i = 0;
+     for (i = 0; i < TABLE_SIZE; i++){
+     mprintf("voltage: %lg and pmw: %lg .\n", voltage[i], pmw[i]);
+     }*/
     
     // This configures digital output on the ports so do it after we setup the hardware lines.
     this->variableSetup();
@@ -449,7 +462,8 @@ bool LabJackU6Device::initialize() {
         return false; // merror is done in ljU6WriteDO
     this->strobedDigitalWord->setValue(Datum(M_INTEGER, 0));
     
-    
+    //counterReset = -1;
+    //mprintf("Initialize()\n");
     return true;
 }
 
@@ -463,7 +477,7 @@ bool LabJackU6Device::setupU6PortsAndRestartIfDead() {
     // Do physical port setup
     if (!ljU6ConfigPorts(ljHandle)) {
         // assume dead
-        
+        //mprintf("setupU6PortsAndRestartIfDead():reset ports\n");
         // Force a USB re-enumerate, and reconnect
         mwarning(M_IODEVICE_MESSAGE_DOMAIN, "LJU6 found dead, restarting.  (bug if not on MWServer restart)");
         
@@ -484,15 +498,18 @@ bool LabJackU6Device::setupU6PortsAndRestartIfDead() {
             return false;  // no cleanup needed
         }
     }
-    
+    //mprintf("setupU6PortsAndRestartIfDead()\n");
+    //counterReset = -1;
     return true;
 }
 
 bool LabJackU6Device::startup() {
+    //counterReset=0;
     // Do nothing right now
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf("LabJackU6Device: startup");
     }
+    //mprintf("startup()\n");
     return true;
 }
 
@@ -526,6 +543,9 @@ bool LabJackU6Device::startDeviceIO(){
     setActive(true);
     deviceIOrunning = true;
     
+    //counterReset=-1;
+    trial=0;
+    
     shared_ptr<LabJackU6Device> this_one = shared_from_this();
     pollScheduleNode = scheduler->scheduleUS(std::string(FILELINE ": ") + getTag(),
                                              (MWTime)0,
@@ -539,7 +559,7 @@ bool LabJackU6Device::startDeviceIO(){
     
     //schedule_nodes.push_back(pollScheduleNode);
     //	schedule_nodes_lock.unlock();		// Seems to be no longer supported in MWorks
-    
+    //mprintf("startDeviceIO()");
     return true;
 }
 
@@ -691,7 +711,32 @@ bool LabJackU6Device::ljU6ConfigPorts(HANDLE Handle) {
     // cleanup now done externally to this function
 }
 
-
+long LabJackU6Device::ljU6CounterReset(HANDLE Handle) {
+    uint8 sendDataBuff[8];      // Hard-coded
+    //uint8 recDataBuff[15];      // Hard-coded
+    
+    sendDataBuff[0] = 42;       //IOType is Timer0
+    sendDataBuff[1] = 1;        //  - Don't reset timer
+    sendDataBuff[2] = 0;        //  - Value LSB (ignored)
+    sendDataBuff[3] = 0;        //  - Value MSB (ignored)
+    
+    sendDataBuff[4] = 54;       //IOType is Counter0
+    sendDataBuff[5] = 1;        //  - Don't reset counter
+    sendDataBuff[6] = 55;       //IOType is Counter1
+    sendDataBuff[7] = 1;        //  - Don't reset counter
+    
+    uint8 Errorcode, ErrorFrame;
+    if(ehFeedback(Handle, sendDataBuff, sizeof(sendDataBuff), &Errorcode, &ErrorFrame, NULL, 0) < 0) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "CounterReset bug: ehFeedback error, see stdout");  // note we will get a more informative error on stdout
+        if(Errorcode) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "ehFeedback: error with command, errorcode was %d", Errorcode);
+            return false;
+        }
+        return false;
+    }
+    
+    return 0;
+}
 
 long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
                                     unsigned int *fioState, unsigned int *eioState, unsigned int *cioState)
@@ -701,16 +746,30 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     sendDataBuff[0] = 26;       //IOType is PortStateRead
     
-    sendDataBuff[1] = 42;       //IOType is Timer0
-    sendDataBuff[2] = 0;        //  - Don't reset timer
-    sendDataBuff[3] = 0;        //  - Value LSB (ignored)
-    sendDataBuff[4] = 0;        //  - Value MSB (ignored)
+    mprintf("CounterReset=%d\n", counterReset);
     
-    sendDataBuff[5] = 54;       //IOType is Counter0
-    sendDataBuff[6] = 0;        //  - Don't reset counter
-    sendDataBuff[7] = 55;       //IOType is Counter1
-    sendDataBuff[8] = 0;        //  - Don't reset counter
-    
+    if (counterReset == -1) {
+        sendDataBuff[1] = 42;       //IOType is Timer0
+        sendDataBuff[2] = 1;        //  - Don't reset timer
+        sendDataBuff[3] = 0;        //  - Value LSB (ignored)
+        sendDataBuff[4] = 0;        //  - Value MSB (ignored)
+        
+        sendDataBuff[5] = 54;       //IOType is Counter0
+        sendDataBuff[6] = 1;        //  - Don't reset counter
+        sendDataBuff[7] = 55;       //IOType is Counter1
+        sendDataBuff[8] = 1;        //  - Don't reset counter
+    }
+    else {
+        sendDataBuff[1] = 42;       //IOType is Timer0
+        sendDataBuff[2] = 0;        //  - Don't reset timer
+        sendDataBuff[3] = 0;        //  - Value LSB (ignored)
+        sendDataBuff[4] = 0;        //  - Value MSB (ignored)
+        
+        sendDataBuff[5] = 54;       //IOType is Counter0
+        sendDataBuff[6] = 0;        //  - Don't reset counter
+        sendDataBuff[7] = 55;       //IOType is Counter1
+        sendDataBuff[8] = 0;        //  - Don't reset counter
+    }
     uint8 Errorcode, ErrorFrame;
     
     if(ehFeedback(Handle, sendDataBuff, sizeof(sendDataBuff), &Errorcode, &ErrorFrame, recDataBuff, sizeof(recDataBuff)) < 0)
@@ -732,31 +791,44 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     // Unpack timer value (i.e. quadrature)
     std::int32_t quadratureValue;
-    for (size_t i = 0; i < 4; i++) {
-        // timer output has 4 bit and two channels have the same output
-        ((uint8 *)(&quadratureValue))[i] = recDataBuff[3 + i];
-    }
+    quadratureValue = recDataBuff[3] + recDataBuff[4]*256 + recDataBuff[5]*65536 + recDataBuff[6]*16777216;
+    /*
+     for (size_t i = 0; i < 4; i++) {
+     // timer output has 4 bit and two channels have the same output
+     ((uint8 *)(&quadratureValue))[i] = recDataBuff[3 + i];
+     }
+     quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
+     
+     //mprintf("*****Quadrature = %d *******", quadratureValue);
+     */
     quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
-    
     //mprintf("*****Quadrature = %d *******", quadratureValue);
-    
     // Update quadrature variable (only if quadrature value has changed)
     if (quadrature->getValue().getInteger() != quadratureValue) {
         quadrature->setValue(long(quadratureValue));
     }
     
     // Unpack counter value
-    std::int32_t counterValue[2];
-    for (size_t j = 0; j < 2; j++) {
-        for (size_t i = 0; i < 4; i++) {
-            // each counter output has 4 bit
-            // Hard-coded: counter value starts after quadrature
-            ((uint8 *)(counterValue + j))[i] = recDataBuff[3 + 4*(j+1) + i];
-        }
-        counterValue[j] = CFSwapInt32LittleToHost(counterValue[j]);  // Convert to host byte order
-    }
-    //mprintf("*****Counter = %d *******", counterValue[0]);
+    uint32 counterValue[2];
+    counterValue[0] = recDataBuff[7] + recDataBuff[8]*256 + recDataBuff[9]*65536 + recDataBuff[10]*16777216;
+    counterValue[1] = recDataBuff[11] + recDataBuff[12]*256 + recDataBuff[13]*65536 + recDataBuff[14]*16777216;
+    //mprintf("*****Counter0 = %d *******", counterValue[0]);
+    //mprintf("*****Counter1 = %d *******", counterValue[1]);
+    /*
+     for (size_t j = 0; j < 2; j++) {
+     for (size_t i = 0; i < 4; i++) {
+     // each counter output has 4 bit
+     // Hard-coded: counter value starts after quadrature
+     ((uint8 *)(counterValue + j))[i] = recDataBuff[3 + 4*(j+1) + i];
+     }
+     mprintf("*****Counter0 = %d *******", counterValue[0]);
+     mprintf("*****Counter1 = %d *******", counterValue[1]);
+     counterValue[j] = CFSwapInt32LittleToHost(counterValue[j]);  // Convert to host byte order
+     }
+     */
     
+    counterValue[0] = CFSwapInt32LittleToHost(counterValue[0]);
+    counterValue[1] = CFSwapInt32LittleToHost(counterValue[1]);
     // Update counter variables (only if counter value has changed)
     if (counter->getValue().getInteger() != counterValue[0]) {
         counter->setValue(long(counterValue[0]));
@@ -860,7 +932,7 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Error Calibrating LabJack U6.");
         return false;
     }
-
+    
     if (laserPower == 0) {
         if( eDAC(Handle, &CalibInfo, LJU6_LASERPOWER_DAC, laserVol[0], 0, 0, 0) !=0 ) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: eDAC error");
@@ -909,7 +981,7 @@ void LabJackU6Device::interp1(double *x, int x_tam, double *y, double *xx, int x
     int i, indiceEnVector;
     
     //slope=(double *)calloc(x_tam,sizeof(float));
-   // intercept=(double *)calloc(x_tam,sizeof(float));
+    // intercept=(double *)calloc(x_tam,sizeof(float));
     
     double slope[TABLE_SIZE];
     double intercept[TABLE_SIZE];
@@ -960,7 +1032,7 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
     else if (strcmp(hostname, "hullglick4") == 0)  {
         inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
     }
-    else if (strcmp(hostname, "test-rig.dhe.duke.edu") == 0)  {
+    else if (strcmp(hostname, "test-rig.local") == 0)  {
         inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
         //mprintf("%s\n",inname);
     }

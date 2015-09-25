@@ -56,6 +56,8 @@ protected:
     
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
+    int counterReset;
+    int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
 	shared_ptr<ScheduleTask>	pulseScheduleNode;
@@ -95,7 +97,7 @@ protected:
     bool ljU6WriteLaser(HANDLE Handle, double laserPower);
 	bool ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord);
 	long ljU6ReadPorts(HANDLE Handle, unsigned int *fioState, unsigned int *eioState, unsigned int *cioState);
-    
+    long ljU6CounterReset(HANDLE Handle);
     
 public:
     static const std::string PULSE_DURATION;
