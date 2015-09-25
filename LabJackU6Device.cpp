@@ -711,33 +711,6 @@ bool LabJackU6Device::ljU6ConfigPorts(HANDLE Handle) {
     // cleanup now done externally to this function
 }
 
-long LabJackU6Device::ljU6CounterReset(HANDLE Handle) {
-    uint8 sendDataBuff[8];      // Hard-coded
-    //uint8 recDataBuff[15];      // Hard-coded
-    
-    sendDataBuff[0] = 42;       //IOType is Timer0
-    sendDataBuff[1] = 1;        //  - Don't reset timer
-    sendDataBuff[2] = 0;        //  - Value LSB (ignored)
-    sendDataBuff[3] = 0;        //  - Value MSB (ignored)
-    
-    sendDataBuff[4] = 54;       //IOType is Counter0
-    sendDataBuff[5] = 1;        //  - Don't reset counter
-    sendDataBuff[6] = 55;       //IOType is Counter1
-    sendDataBuff[7] = 1;        //  - Don't reset counter
-    
-    uint8 Errorcode, ErrorFrame;
-    if(ehFeedback(Handle, sendDataBuff, sizeof(sendDataBuff), &Errorcode, &ErrorFrame, NULL, 0) < 0) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "CounterReset bug: ehFeedback error, see stdout");  // note we will get a more informative error on stdout
-        if(Errorcode) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "ehFeedback: error with command, errorcode was %d", Errorcode);
-            return false;
-        }
-        return false;
-    }
-    
-    return 0;
-}
-
 long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
                                     unsigned int *fioState, unsigned int *eioState, unsigned int *cioState)
 {
