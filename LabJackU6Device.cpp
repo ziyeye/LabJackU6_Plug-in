@@ -321,7 +321,7 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
                      pct);
         }
     }
- 
+    
     //mprintf("*******Lever1State: 0x%x", fioState);
     //lever1State = (cioState >> (LJU6_LEVER1_CIO - LJU6_CIO_OFFSET)) & 0x01;
     lever1State = (fioState >> LJU6_LEVER1_FIO) & 0x01;
@@ -331,7 +331,11 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
     
     *outLever1 = lever1State;
     
-    trial++;
+    if (trial > 10000) {
+        trial = 1;
+    } else {
+        trial++;
+    }
     
     return(1);
 }
@@ -497,7 +501,7 @@ bool LabJackU6Device::setupU6PortsAndRestartIfDead() {
 }
 
 bool LabJackU6Device::startup() {
-
+    
     // Do nothing right now
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf("LabJackU6Device: startup");
@@ -754,16 +758,16 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     // Unpack timer value (i.e. quadrature)
     std::int32_t quadratureValue;
-    quadratureValue = recDataBuff[3] + recDataBuff[4]*256 + recDataBuff[5]*65536 + recDataBuff[6]*16777216;
-    /*
-     for (size_t i = 0; i < 4; i++) {
-     // timer output has 4 bit and two channels have the same output
-     ((uint8 *)(&quadratureValue))[i] = recDataBuff[3 + i];
-     }
-     quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
-     
-     //mprintf("*****Quadrature = %d *******", quadratureValue);
-     */
+    //quadratureValue = recDataBuff[3] + recDataBuff[4]*256 + recDataBuff[5]*65536 + recDataBuff[6]*16777216;
+    
+    for (size_t i = 0; i < 4; i++) {
+        // timer output has 4 bit and two channels have the same output
+        ((uint8 *)(&quadratureValue))[i] = recDataBuff[3 + i];
+    }
+    quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
+    
+    //mprintf("*****Quadrature = %d *******", quadratureValue);
+    
     quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     // Update quadrature variable (only if quadrature value has changed)
@@ -773,22 +777,22 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     // Unpack counter value
     uint32 counterValue[2];
-    counterValue[0] = recDataBuff[7] + recDataBuff[8]*256 + recDataBuff[9]*65536 + recDataBuff[10]*16777216;
-    counterValue[1] = recDataBuff[11] + recDataBuff[12]*256 + recDataBuff[13]*65536 + recDataBuff[14]*16777216;
+    //counterValue[0] = recDataBuff[7] + recDataBuff[8]*256 + recDataBuff[9]*65536 + recDataBuff[10]*16777216;
+    //counterValue[1] = recDataBuff[11] + recDataBuff[12]*256 + recDataBuff[13]*65536 + recDataBuff[14]*16777216;
     //mprintf("*****Counter0 = %d *******", counterValue[0]);
     //mprintf("*****Counter1 = %d *******", counterValue[1]);
-    /*
-     for (size_t j = 0; j < 2; j++) {
-     for (size_t i = 0; i < 4; i++) {
-     // each counter output has 4 bit
-     // Hard-coded: counter value starts after quadrature
-     ((uint8 *)(counterValue + j))[i] = recDataBuff[3 + 4*(j+1) + i];
-     }
-     mprintf("*****Counter0 = %d *******", counterValue[0]);
-     mprintf("*****Counter1 = %d *******", counterValue[1]);
-     counterValue[j] = CFSwapInt32LittleToHost(counterValue[j]);  // Convert to host byte order
-     }
-     */
+    
+    for (size_t j = 0; j < 2; j++) {
+        for (size_t i = 0; i < 4; i++) {
+            // each counter output has 4 bit
+            // Hard-coded: counter value starts after quadrature
+            ((uint8 *)(counterValue + j))[i] = recDataBuff[3 + 4*(j+1) + i];
+        }
+        //mprintf("*****Counter0 = %d *******", counterValue[0]);
+        //mprintf("*****Counter1 = %d *******", counterValue[1]);
+        counterValue[j] = CFSwapInt32LittleToHost(counterValue[j]);  // Convert to host byte order
+    }
+    
     
     counterValue[0] = CFSwapInt32LittleToHost(counterValue[0]);
     counterValue[1] = CFSwapInt32LittleToHost(counterValue[1]);
