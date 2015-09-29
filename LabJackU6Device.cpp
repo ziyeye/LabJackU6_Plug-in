@@ -1029,7 +1029,7 @@ vector< float > interp1( vector< float > &x, vector< float > &y, vector< float >
         y_new.push_back( slope[idx] * x_new[i] + intercept[idx] );
         
     }
-    
+    return y_new;
 }
 
 int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {

@@ -139,7 +139,7 @@ public:
     // two functions to do linear interpolation on LED power
     //int findNearestNeighbourIndex( double value, double *x, int len );
     //void interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy);
-    int findNearestNeighbourIndex( float value, vector< float > &x )
+    int findNearestNeighbourIndex( float value, vector< float > &x );
     vector< float > interp1( vector< float > &x, vector< float > &y, vector< float > &x_new );
     
 	virtual void dispense(Datum data){
