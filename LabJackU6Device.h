@@ -18,6 +18,9 @@
 #include <float.h>
 #include <unistd.h>
 #include <string.h>
+#include <vector>
+#include <cfloat>
+#include <math.h>
 #include "u6.h"
 #include "labjackusb.h"
 
@@ -86,8 +89,10 @@ protected:
 	boost::mutex active_mutex;
 	bool deviceIOrunning;
 	
-    double voltage[TABLE_SIZE];    // voltage array of LED table
-    double pmw[TABLE_SIZE];        // LED power array
+    //double voltage[TABLE_SIZE];    // voltage array of LED table
+    //double pmw[TABLE_SIZE];        // LED power array
+    vector<double> voltage;
+    vector<double> pmw;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
@@ -139,8 +144,8 @@ public:
     // two functions to do linear interpolation on LED power
     //int findNearestNeighbourIndex( double value, double *x, int len );
     //void interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy);
-    int findNearestNeighbourIndex( float value, vector< float > &x );
-    vector< float > interp1( vector< float > &x, vector< float > &y, vector< float > &x_new );
+    int findNearestNeighbourIndex( double value, vector< double > &x );
+    vector< double > interp1( vector< double > &x, vector< double > &y, vector< double > &x_new );
     
 	virtual void dispense(Datum data){
 		if(getActive()){

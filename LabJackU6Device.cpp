@@ -889,9 +889,13 @@ bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
 bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
     
     int x_tam = TABLE_SIZE;
-    double xx[] = {laserPower};
+    //double xx[] = {laserPower};
+    vector<double> xx;
+    xx.push_back(laserPower);
+    
     int xx_tam = 1;          // Hard-coded for only one laserPower
-    double laserVol[]= {0};  // Hard-coded size
+    //double laserVol[]= {0};  // Hard-coded size
+    vector<double> laserVol;
     
     u6CalibrationInfo CalibInfo;          // get calibration struct
     
@@ -908,7 +912,7 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
             mprintf("*** Laser is turned off ***\n");
         }
     } else {
-        interp1(pmw, x_tam, voltage, xx, xx_tam, laserVol);   //Get interpolated voltage
+        laserVol=interp1(pmw, voltage, xx);   //Get interpolated voltage
         
         //mprintf("Laser Voltage: %lg\n", laserVol[0]);
         
@@ -981,12 +985,12 @@ void LabJackU6Device::interp1(double *x, int x_tam, double *y, double *xx, int x
 }
 */
 
-int findNearestNeighbourIndex( float value, vector< float > &x )
+int findNearestNeighbourIndex( double value, vector< double > &x )
 {
-    float dist = FLT_MAX;
+    double dist = FLT_MAX;
     int idx = -1;
     for ( int i = 0; i < x.size(); ++i ) {
-        float newDist = value - x[i];
+        double newDist = value - x[i];
         if ( newDist > 0 && newDist < dist ) {
             dist = newDist;
             idx = i;
@@ -996,12 +1000,12 @@ int findNearestNeighbourIndex( float value, vector< float > &x )
     return idx;
 }
 
-vector< float > interp1( vector< float > &x, vector< float > &y, vector< float > &x_new )
+vector< double > interp1( vector< double > &x, vector< double > &y, vector< double > &x_new )
 {
-    vector< float > y_new;
+    vector< double > y_new;
     y_new.reserve( x_new.size() );
     
-    std::vector< float > dx, dy, slope, intercept;
+    std::vector< double > dx, dy, slope, intercept;
     dx.reserve( x.size() );
     dy.reserve( x.size() );
     slope.reserve( x.size() );
@@ -1074,6 +1078,7 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
         return -1;
     }
     
+    /*
     infile = fopen(inname, "r");
     
     if (!infile) {
@@ -1090,6 +1095,27 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
     }
     
     fclose(infile);
+     */
+    std::ifstream ifs(inname);
+    
+    std::string line;
+    
+    while(std::getline(ifs, line)) // read one line from ifs
+    {
+        std::istringstream iss(line); // access line as a stream
+        
+        // we only need the first two columns
+        double column1;
+        double column2;
+        
+        iss >> column1 >> column2; // no need to read further
+        
+        voltage.push_back(column1);
+        pmw.push_back(column2);
+        
+        // do what you will with column2
+    }
+    
     return 0;
 }
 
