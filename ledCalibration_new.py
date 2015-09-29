@@ -11,7 +11,7 @@ todaystr = today.isoformat()
 
 startV = 0
 stopV = 5
-nVPts = 51
+nVPts = 501
 
 d = u6.U6() # open LabJack U6
 
@@ -25,7 +25,11 @@ d.getCalibrationData() # get calibration info for U6
 #pl.ylabel('Calculated LED Output (mW)')
 device_type = raw_input('Are you calibrating led or laser? ')
 # Set DAC0 to 2V and get analog reading from AIN0 to calculate scale
-DAC0_value = d.voltageToDACBits(2, dacNumber = 0, is16Bits = False)
+if device_type == "led":
+    DAC0_value = d.voltageToDACBits(2, dacNumber = 0, is16Bits = False)
+elif device_type == "laser":
+    DAC0_value = d.voltageToDACBits(1.7, dacNumber = 0, is16Bits = False)
+
 d.getFeedback(u6.DAC0_8(DAC0_value))
 
 power_2V=float(raw_input('Press enter Power Reading on Photometer: '))
@@ -33,6 +37,7 @@ power_2V=float(raw_input('Press enter Power Reading on Photometer: '))
 scale = power_2V/d.getAIN(0) 
 
 vLevels = np.linspace(startV, stopV, nVPts)
+print vLevels
 respV = vLevels*np.nan # initialize led power array
 
 for (tVNum,tV) in enumerate(vLevels):
@@ -46,9 +51,10 @@ for (tVNum,tV) in enumerate(vLevels):
     if device_type == "led":
         time.sleep(3)  # wait for 3s
     elif device_type == "laser":
-        time.sleep(15)
+        time.sleep(10)
     # read resulting analog AIN0
     ainValue = d.getAIN(0)
+   
     tDataCol = (ainValue*scale) #scale the input voltage to power
     print tDataCol
     
