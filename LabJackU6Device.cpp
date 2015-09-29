@@ -923,6 +923,7 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
     return true;
 }
 
+/*
 int LabJackU6Device::findNearestNeighbourIndex( double value, double *x, int len )
 {
     double dist;
@@ -941,7 +942,8 @@ int LabJackU6Device::findNearestNeighbourIndex( double value, double *x, int len
     
     return idx;
 }
-
+*/
+/*
 void LabJackU6Device::interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy)
 {
     double dx, dy;
@@ -976,6 +978,58 @@ void LabJackU6Device::interp1(double *x, int x_tam, double *y, double *xx, int x
     //mprintf("Laser Voltage: %lg\n", yy[i]);
     //free(slope);
     //free(intercept);
+}
+*/
+
+int findNearestNeighbourIndex( float value, vector< float > &x )
+{
+    float dist = FLT_MAX;
+    int idx = -1;
+    for ( int i = 0; i < x.size(); ++i ) {
+        float newDist = value - x[i];
+        if ( newDist > 0 && newDist < dist ) {
+            dist = newDist;
+            idx = i;
+        }
+    }
+    
+    return idx;
+}
+
+vector< float > interp1( vector< float > &x, vector< float > &y, vector< float > &x_new )
+{
+    vector< float > y_new;
+    y_new.reserve( x_new.size() );
+    
+    std::vector< float > dx, dy, slope, intercept;
+    dx.reserve( x.size() );
+    dy.reserve( x.size() );
+    slope.reserve( x.size() );
+    intercept.reserve( x.size() );
+    for( int i = 0; i < x.size(); ++i ){
+        if( i < x.size()-1 )
+        {
+            dx.push_back( x[i+1] - x[i] );
+            dy.push_back( y[i+1] - y[i] );
+            slope.push_back( dy[i] / dx[i] );
+            intercept.push_back( y[i] - x[i] * slope[i] );
+        }
+        else
+        {
+            dx.push_back( dx[i-1] );
+            dy.push_back( dy[i-1] );
+            slope.push_back( slope[i-1] );
+            intercept.push_back( intercept[i-1] );
+        }
+    }
+    
+    for ( int i = 0; i < x_new.size(); ++i )
+    {
+        int idx = findNearestNeighbourIndex( x_new[i], x );
+        y_new.push_back( slope[idx] * x_new[i] + intercept[idx] );
+        
+    }
+    
 }
 
 int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
