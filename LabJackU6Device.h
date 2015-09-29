@@ -21,6 +21,9 @@
 #include <vector>
 #include <cfloat>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include "u6.h"
 #include "labjackusb.h"
 
@@ -91,8 +94,8 @@ protected:
 	
     //double voltage[TABLE_SIZE];    // voltage array of LED table
     //double pmw[TABLE_SIZE];        // LED power array
-    vector<double> voltage;
-    vector<double> pmw;
+    std::vector<double> voltage;
+    std::vector<double> pmw;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
@@ -131,7 +134,7 @@ public:
 	void detachPhysicalDevice();
 	void variableSetup();
 	bool setupU6PortsAndRestartIfDead();
-    int  loadLEDTable(double *voltage, double *pmw );
+    int  loadLEDTable(std::vector<double> voltage, std::vector<double> pmw );
 	
 	bool readLeverDI(bool *outLever1);
 	void pulseDOHigh(int pulseLengthUS);
@@ -144,8 +147,8 @@ public:
     // two functions to do linear interpolation on LED power
     //int findNearestNeighbourIndex( double value, double *x, int len );
     //void interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy);
-    int findNearestNeighbourIndex( double value, vector< double > &x );
-    vector< double > interp1( vector< double > &x, vector< double > &y, vector< double > &x_new );
+    int findNearestNeighbourIndex( double value, std::vector< double > &x );
+    std::vector<double> interp1( std::vector< double > &x, std::vector< double > &y, std::vector< double > x_new );
     
 	virtual void dispense(Datum data){
 		if(getActive()){

@@ -23,6 +23,8 @@
 #include <boost/bind.hpp>
 #include "LabJackU6Device.h"
 
+using std::vector;
+
 #define kBufferLength	2048
 #define kDIDeadtimeUS	5000
 #define kDIReportTimeUS	5000
@@ -888,14 +890,15 @@ bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
 
 bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
     
-    int x_tam = TABLE_SIZE;
+    //int x_tam = TABLE_SIZE;
     //double xx[] = {laserPower};
-    vector<double> xx;
+    std::vector<double> xx;
     xx.push_back(laserPower);
     
-    int xx_tam = 1;          // Hard-coded for only one laserPower
+    //int xx_tam = 1;          // Hard-coded for only one laserPower
     //double laserVol[]= {0};  // Hard-coded size
-    vector<double> laserVol;
+    //std::vector<double> laserVol;
+    //laserVol.push_back(0);
     
     u6CalibrationInfo CalibInfo;          // get calibration struct
     
@@ -905,14 +908,14 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
     }
     
     if (laserPower == 0) {
-        if( eDAC(Handle, &CalibInfo, LJU6_LASERPOWER_DAC, laserVol[0], 0, 0, 0) !=0 ) {
+        if( eDAC(Handle, &CalibInfo, LJU6_LASERPOWER_DAC, laserPower, 0, 0, 0) !=0 ) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: eDAC error");
             return false;
         } else {
             mprintf("*** Laser is turned off ***\n");
         }
     } else {
-        laserVol=interp1(pmw, voltage, xx);   //Get interpolated voltage
+        std::vector<double> laserVol=interp1(pmw, voltage, xx);   //Get interpolated voltage
         
         //mprintf("Laser Voltage: %lg\n", laserVol[0]);
         
@@ -985,7 +988,7 @@ void LabJackU6Device::interp1(double *x, int x_tam, double *y, double *xx, int x
 }
 */
 
-int findNearestNeighbourIndex( double value, vector< double > &x )
+int findNearestNeighbourIndex( double value, std::vector< double > x )
 {
     double dist = FLT_MAX;
     int idx = -1;
@@ -1000,9 +1003,9 @@ int findNearestNeighbourIndex( double value, vector< double > &x )
     return idx;
 }
 
-vector< double > interp1( vector< double > &x, vector< double > &y, vector< double > &x_new )
+vector<double> interp1( std::vector< double > &x, std::vector< double > &y, std::vector< double > x_new )
 {
-    vector< double > y_new;
+    std::vector< double > y_new;
     y_new.reserve( x_new.size() );
     
     std::vector< double > dx, dy, slope, intercept;
@@ -1036,11 +1039,11 @@ vector< double > interp1( vector< double > &x, vector< double > &y, vector< doub
     return y_new;
 }
 
-int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
+int LabJackU6Device::loadLEDTable(std::vector<double> voltage, std::vector<double> pmw) {
     //double voltage[TABLE_SIZE];
     //double pmw[TABLE_SIZE];
     char const *inname;
-    FILE *infile;
+    //FILE *infile;
     char hostname[1024];
     
     gethostname(hostname, 1024);
