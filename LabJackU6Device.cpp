@@ -916,7 +916,7 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: eDAC error");
             return false;
         } else {
-            mprintf("*** Requested %gmW of LED and %gV is sent to driver ***\n", xx[0], laserVol[0]);
+            mprintf("*** %gmW is received and %gV is sent ***\n", xx[0], laserVol[0]);
         }
     }
     
@@ -988,42 +988,42 @@ int LabJackU6Device::loadLEDTable(double *voltage, double *pmw) {
     gethostname(hostname, 1024);
     
     if (strcmp(hostname, "hullglick1") == 0) {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "hullglick2") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "hullglick3") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "hullglick4") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "test-rig.local") == 0 || strcmp(hostname, "test-rig.dhe.duke.edu") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
         //mprintf("%s\n",inname);
     }
     else if (strcmp(hostname, "test-rig-2.local") == 0 || strcmp(hostname, "test-rig-2.dhe.duke.edu") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "hullglick5") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "hullglicksmini2.local") == 0 || strcmp(hostname, "hullglicksmini2.dhe.duke.edu") == 0)  {  //imaging rig
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else if (strcmp(hostname, "HullGlicks-Mac-mini-6.local") == 0 || strcmp(hostname, "HullGlicks-Mac-mini-6.dhe.duke.edu") == 0)  {
-        inname = "/Users/hullglick/Documents/LED_Table/LED.txt";
+        inname = "/Users/hullglick/Documents/Calibration_Table/calibration.txt";
     }
     else {
-        printf("Invalid hostname.\n");
+        mprintf("Invalid hostname.\n");
         return -1;
     }
     
     infile = fopen(inname, "r");
     
     if (!infile) {
-        printf("Couldn't open %s for reading\n", inname);
+        mprintf("Couldn't open %s for reading\n", inname);
         exit(1);
     }
     
