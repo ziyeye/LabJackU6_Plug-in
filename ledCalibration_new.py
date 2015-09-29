@@ -38,14 +38,14 @@ respV = vLevels*np.nan # initialize led power array
 for (tVNum,tV) in enumerate(vLevels):
     
     # set ao value
-    volts = (tV*np.ones(1))
-    print(volts)
+    #volts = (tV*np.ones(1))
+    print(tV)
     
     # loop through each voltage value and set DAC0
-    for val in volts:
-        DAC0_value = d.voltageToDACBits(val, dacNumber = 0, is16Bits = False)
-        d.getFeedback(u6.DAC0_8(DAC0_value))
-        time.sleep(3)  # wait for 3s
+    
+    DAC0_value = d.voltageToDACBits(tV, dacNumber = 0, is16Bits = False)
+    d.getFeedback(u6.DAC0_8(DAC0_value))
+    time.sleep(3)  # wait for 3s
     
     # read resulting analog AIN0
     ainValue = d.getAIN(0)
@@ -55,7 +55,8 @@ for (tVNum,tV) in enumerate(vLevels):
     #responseData = tDataCol
     #responseData = np.array([x for x in tDataCol])
     #load into a vector - discard pts at start for stability
-    respV[tVNum] = np.mean(tDataCol)
+    #respV[tVNum] = np.mean(tDataCol)
+    respV[tVNum] = tDataCol
     #respV = responseData
 
     #noNanIx = np.logical_not(np.isnan(respV))
