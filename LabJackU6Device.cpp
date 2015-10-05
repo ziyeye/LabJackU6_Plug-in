@@ -988,7 +988,7 @@ void LabJackU6Device::interp1(double *x, int x_tam, double *y, double *xx, int x
 }
 */
 
-int findNearestNeighbourIndex( double value, std::vector< double > x )
+int LabJackU6Device::findNearestNeighbourIndex( double value, const std::vector< double > &x )
 {
     double dist = FLT_MAX;
     int idx = -1;
@@ -1003,7 +1003,7 @@ int findNearestNeighbourIndex( double value, std::vector< double > x )
     return idx;
 }
 
-vector<double> interp1( std::vector< double > &x, std::vector< double > &y, std::vector< double > x_new )
+vector<double> LabJackU6Device::interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new )
 {
     std::vector< double > y_new;
     y_new.reserve( x_new.size() );
@@ -1039,7 +1039,7 @@ vector<double> interp1( std::vector< double > &x, std::vector< double > &y, std:
     return y_new;
 }
 
-int LabJackU6Device::loadLEDTable(std::vector<double> voltage, std::vector<double> pmw) {
+int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw) {
     //double voltage[TABLE_SIZE];
     //double pmw[TABLE_SIZE];
     char const *inname;
