@@ -764,7 +764,10 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     // Unpack timer value (i.e. quadrature)
     std::int32_t quadratureValue;
+    
+    /* another way to extract
     //quadratureValue = recDataBuff[3] + recDataBuff[4]*256 + recDataBuff[5]*65536 + recDataBuff[6]*16777216;
+    */
     
     for (size_t i = 0; i < 4; i++) {
         // timer output has 4 bit and two channels have the same output
@@ -783,8 +786,12 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     // Unpack counter value
     uint32 counterValue[2];
+    
+    /* another way to do it
     //counterValue[0] = recDataBuff[7] + recDataBuff[8]*256 + recDataBuff[9]*65536 + recDataBuff[10]*16777216;
     //counterValue[1] = recDataBuff[11] + recDataBuff[12]*256 + recDataBuff[13]*65536 + recDataBuff[14]*16777216;
+     */
+    
     //mprintf("*****Counter0 = %d *******", counterValue[0]);
     //mprintf("*****Counter1 = %d *******", counterValue[1]);
     
