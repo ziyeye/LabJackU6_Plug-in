@@ -425,6 +425,10 @@ bool LabJackU6Device::initialize() {
         mprintf("LabJackU6Device::initialize: found LabJackU6");
     }
     
+    std::cout << "Are you using laser or led?";
+    std::string device_type;
+    std::cin >> device_type;
+    
     if (loadLEDTable(voltage, pmw) != 0) { // Load LED table into array
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Error loading LED lookup table");
         return false;
