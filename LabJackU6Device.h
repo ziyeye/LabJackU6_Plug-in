@@ -34,18 +34,17 @@
 #define LJU6_DITASK_WARN_SLOP_US     50000
 #define LJU6_DITASK_FAIL_SLOP_US     50000
 
-#define TABLE_SIZE              51
-
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
 #define LJU6_LEVER1_FIO         1
-#define LJU6_TCPIN_OFFSET       4 // Timer offset pin
+#define LJU6_TCPIN_OFFSET       2 // Timer offset pin
 
 #define LJU6_CIO_OFFSET         16
 
 #define LJU6_LEVER1SOLENOID_CIO 16
-#define LJU6_STROBE_CIO         18
 #define LJU6_LASERTRIGGER_CIO   17
+#define LJU6_STROBE_CIO         18
+
 
 #define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 
@@ -82,9 +81,12 @@ protected:
 	boost::shared_ptr <Variable> tTrialLaserPowerMw;
     boost::shared_ptr <Variable> laserTrigger;
 	boost::shared_ptr <Variable> strobedDigitalWord;
-	boost::shared_ptr <Variable> counter;
+	boost::shared_ptr <Variable> counter1;
 	boost::shared_ptr <Variable> counter2;
+    boost::shared_ptr <Variable> counter3;
+	boost::shared_ptr <Variable> counter4;
 	boost::shared_ptr <Variable> quadrature;
+    boost::shared_ptr <Variable> optic_device;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -114,9 +116,12 @@ public:
     static const std::string TRIAL_LASER_POWERMW;
     static const std::string LASER_TRIGGER;
     static const std::string STROBED_DIGITAL_WORD;
-    static const std::string COUNTER;
+    static const std::string COUNTER1;
     static const std::string COUNTER2;
+    static const std::string COUNTER3;
+    static const std::string COUNTER4;
     static const std::string QUADRATURE;
+    static const std::string OPTIC_DEVICE;
     
     static void describeComponent(ComponentInfo &info);
 	
@@ -145,8 +150,6 @@ public:
 	void strobedDigitalWordDO(unsigned int digWord);
 	
     // two functions to do linear interpolation on LED power
-    //int findNearestNeighbourIndex( double value, double *x, int len );
-    //void interp1(double *x, int x_tam, double *y, double *xx, int xx_tam, double *yy);
     int findNearestNeighbourIndex( double value, const std::vector< double > &x );
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );
     

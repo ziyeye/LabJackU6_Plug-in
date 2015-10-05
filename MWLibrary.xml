@@ -28,9 +28,12 @@ Used for interfacing to a LabJack U6
                       trial_laser_powerMw=""
                       laser_trigger=""
                       strobed_digital_word=""
-                      counter=""
+                      counter1=""
                       counter2=""
+                      counter3=""
+                      counter4=""
                       quadrature=""
+                      optic_device=""
                       />
         </code>
     </MWElement>
