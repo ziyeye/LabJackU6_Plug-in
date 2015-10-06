@@ -27,9 +27,9 @@ if device_type == "led":
     nVPts  = 51
     DAC0_value = d.voltageToDACBits(2, dacNumber = 0, is16Bits = False)
 elif device_type == "laser":
-    startV = 1
-    stopV  = 2
-    nVPts  = 200
+    startV = 1.43
+    stopV  = 2.1
+    nVPts  = 201
     DAC0_value = d.voltageToDACBits(1.7, dacNumber = 0, is16Bits = False)
 
 d.getFeedback(u6.DAC0_8(DAC0_value))
