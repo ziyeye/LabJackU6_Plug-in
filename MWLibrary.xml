@@ -30,8 +30,6 @@ Used for interfacing to a LabJack U6
                       strobed_digital_word=""
                       counter1=""
                       counter2=""
-                      counter3=""
-                      counter4=""
                       quadrature=""
                       optic_device=""
                       />

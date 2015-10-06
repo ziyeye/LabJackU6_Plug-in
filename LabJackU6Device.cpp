@@ -63,8 +63,8 @@ const std::string LabJackU6Device::LASER_TRIGGER("laser_trigger");
 const std::string LabJackU6Device::STROBED_DIGITAL_WORD("strobed_digital_word");
 const std::string LabJackU6Device::COUNTER1("counter1");
 const std::string LabJackU6Device::COUNTER2("counter2");
-const std::string LabJackU6Device::COUNTER3("counter3");
-const std::string LabJackU6Device::COUNTER4("counter4");
+//const std::string LabJackU6Device::COUNTER3("counter3");
+//const std::string LabJackU6Device::COUNTER4("counter4");
 const std::string LabJackU6Device::QUADRATURE("quadrature");
 const std::string LabJackU6Device::OPTIC_DEVICE("optic_device");
 
@@ -107,8 +107,8 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(STROBED_DIGITAL_WORD, "0");
     info.addParameter(COUNTER1, "0");
     info.addParameter(COUNTER2, "0");
-    info.addParameter(COUNTER3, "0");
-    info.addParameter(COUNTER4, "0");
+    //info.addParameter(COUNTER3, "0");
+    //info.addParameter(COUNTER4, "0");
     info.addParameter(QUADRATURE, "0");
     info.addParameter(OPTIC_DEVICE, "true");
 }
@@ -127,8 +127,8 @@ laserTrigger(parameters[LASER_TRIGGER]),
 strobedDigitalWord(parameters[STROBED_DIGITAL_WORD]),
 counter1(parameters[COUNTER1]),
 counter2(parameters[COUNTER2]),
-counter3(parameters[COUNTER3]),
-counter4(parameters[COUNTER4]),
+//counter3(parameters[COUNTER3]),
+//counter4(parameters[COUNTER4]),
 quadrature(parameters[QUADRATURE]),
 optic_device(parameters[OPTIC_DEVICE]),
 deviceIOrunning(false),
@@ -693,9 +693,9 @@ bool LabJackU6Device::ljU6ConfigPorts(HANDLE Handle) {
     
     // Configure timer and counter
     
-    long aEnableTimers[] = { 1, 1, 1, 1 };  // Use Timer0-3
+    long aEnableTimers[] = { 1, 1, 0, 0 };  // Use Timer0-3
     long aEnableCounters[] = { 1, 1 };      // Use Counter0 and Counter1
-    long aTimerModes[] = { 8, 8, 5, 5 };  // Use quadrature input mode for both timers and firmware counter
+    long aTimerModes[] = { 8, 8, 0, 0 };  // Use quadrature input mode for both timers and firmware counter
     double aTimerValues[] = { 0.0, 0.0, 0.0, 0.0 };
     
     
@@ -722,8 +722,8 @@ bool LabJackU6Device::ljU6ConfigPorts(HANDLE Handle) {
 long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
                                     unsigned int *fioState, unsigned int *eioState, unsigned int *cioState)
 {
-    uint8 sendDataBuff[17];      // Hard-coded
-    uint8 recDataBuff[23];      // Hard-coded
+    uint8 sendDataBuff[9];      // Hard-coded
+    uint8 recDataBuff[15];      // Hard-coded
     
     sendDataBuff[0] = 26;       //IOType is PortStateRead
     
@@ -733,6 +733,11 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         sendDataBuff[3] = 0;        //  - Value LSB (ignored)
         sendDataBuff[4] = 0;        //  - Value MSB (ignored)
         
+        sendDataBuff[5] = 54;       //IOType is Counter0
+        sendDataBuff[6] = 1;        //  - Reset counter
+        sendDataBuff[7] = 55;       //IOType is Counter1
+        sendDataBuff[8] = 1;        //  - Reset counter
+        /*
         sendDataBuff[5] = 46;       //IOType is Timer2
         sendDataBuff[6] = 1;        //  - Don't reset timer
         sendDataBuff[7] = 0;        //  - Value LSB (ignored)
@@ -747,6 +752,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         sendDataBuff[14] = 1;        //  - Reset counter
         sendDataBuff[15] = 55;       //IOType is Counter1
         sendDataBuff[16] = 1;        //  - Reset counter
+         */
+        
     }
     else {
         sendDataBuff[1] = 42;       //IOType is Timer0
@@ -754,6 +761,12 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         sendDataBuff[3] = 0;        //  - Value LSB (ignored)
         sendDataBuff[4] = 0;        //  - Value MSB (ignored)
         
+        sendDataBuff[5] = 54;       //IOType is Counter0
+        sendDataBuff[6] = 0;        //  - Reset counter
+        sendDataBuff[7] = 55;       //IOType is Counter1
+        sendDataBuff[8] = 0;        //  - Reset counter
+
+        /*
         sendDataBuff[5] = 46;       //IOType is Timer2
         sendDataBuff[6] = 0;        //  - Don't reset timer
         sendDataBuff[7] = 0;        //  - Value LSB (ignored)
@@ -768,7 +781,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         sendDataBuff[14] = 0;        //  - Don't reset counter
         sendDataBuff[15] = 55;       //IOType is Counter1
         sendDataBuff[16] = 0;        //  - Don't reset counter
-        
+        */
     }
     uint8 Errorcode, ErrorFrame;
     
@@ -812,7 +825,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     }
     
     // Unpack counter value
-    uint32 counterValue[4];
+    uint32 counterValue[2];
     
     /* another way to do it
      //counterValue[0] = recDataBuff[7] + recDataBuff[8]*256 + recDataBuff[9]*65536 + recDataBuff[10]*16777216;
@@ -822,7 +835,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     //mprintf("*****Counter0 = %d *******", counterValue[0]);
     //mprintf("*****Counter1 = %d *******", counterValue[1]);
     
-    for (size_t j = 0; j < 4; j++) {
+    for (size_t j = 0; j < 2; j++) {
         for (size_t i = 0; i < 4; i++) {
             // each counter output has 4 bit
             // Hard-coded: counter value starts after quadrature
@@ -835,8 +848,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     counterValue[0] = CFSwapInt32LittleToHost(counterValue[0]);
     counterValue[1] = CFSwapInt32LittleToHost(counterValue[1]);
-    counterValue[2] = CFSwapInt32LittleToHost(counterValue[2]);
-    counterValue[3] = CFSwapInt32LittleToHost(counterValue[3]);
+    //counterValue[2] = CFSwapInt32LittleToHost(counterValue[2]);
+    //counterValue[3] = CFSwapInt32LittleToHost(counterValue[3]);
     
     // Update counter variables (only if counter value has changed)
     if (counter1->getValue().getInteger() != counterValue[0]) {
@@ -847,6 +860,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         counter2->setValue(long(counterValue[1]));
     }
     
+    /*
     if (counter3->getValue().getInteger() != counterValue[2]) {
         counter3->setValue(long(counterValue[2]));
     }
@@ -854,6 +868,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     if (counter4->getValue().getInteger() != counterValue[3]) {
         counter4->setValue(long(counterValue[3]));
     }
+    */
     
     return 0;
     
@@ -1043,7 +1058,7 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     } else {
         inname = "/Users/hullglick/Documents/Calibration_Table/laser.txt";
     }
-    mprintf("file name is: %s\n",inname);
+    mprintf("Calibration file name is: %s\n",inname);
     
     std::ifstream ifs(inname);
     

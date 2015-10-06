@@ -9,10 +9,6 @@ today = datetime.date.today()
 
 todaystr = today.isoformat()
 
-startV = 0
-stopV = 5
-nVPts = 501
-
 d = u6.U6() # open LabJack U6
 
 d.getCalibrationData() # get calibration info for U6
@@ -26,8 +22,14 @@ d.getCalibrationData() # get calibration info for U6
 device_type = raw_input('Are you calibrating led or laser? ')
 # Set DAC0 to 2V and get analog reading from AIN0 to calculate scale
 if device_type == "led":
+    startV = 0
+    stopV  = 5
+    nVPts  = 51
     DAC0_value = d.voltageToDACBits(2, dacNumber = 0, is16Bits = False)
 elif device_type == "laser":
+    startV = 1
+    stopV  = 2
+    nVPts  = 200
     DAC0_value = d.voltageToDACBits(1.7, dacNumber = 0, is16Bits = False)
 
 d.getFeedback(u6.DAC0_8(DAC0_value))
@@ -81,7 +83,7 @@ if not os.path.exists(dirname):
 
 os.chdir(dirname)
 
-outName = "calibration.txt"
+outName = device_type + ".txt"
 print dirname + "/" + outName +" is written."
 
 fd = open(outName, 'w')

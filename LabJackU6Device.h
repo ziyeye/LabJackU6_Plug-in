@@ -37,7 +37,7 @@
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
 #define LJU6_LEVER1_FIO         1
-#define LJU6_TCPIN_OFFSET       2 // Timer offset pin
+#define LJU6_TCPIN_OFFSET       4 // Timer offset pin
 
 #define LJU6_CIO_OFFSET         16
 
@@ -83,8 +83,8 @@ protected:
 	boost::shared_ptr <Variable> strobedDigitalWord;
 	boost::shared_ptr <Variable> counter1;
 	boost::shared_ptr <Variable> counter2;
-    boost::shared_ptr <Variable> counter3;
-	boost::shared_ptr <Variable> counter4;
+    //boost::shared_ptr <Variable> counter3;
+	//boost::shared_ptr <Variable> counter4;
 	boost::shared_ptr <Variable> quadrature;
     boost::shared_ptr <Variable> optic_device;
     
@@ -118,8 +118,8 @@ public:
     static const std::string STROBED_DIGITAL_WORD;
     static const std::string COUNTER1;
     static const std::string COUNTER2;
-    static const std::string COUNTER3;
-    static const std::string COUNTER4;
+    //static const std::string COUNTER3;
+    //static const std::string COUNTER4;
     static const std::string QUADRATURE;
     static const std::string OPTIC_DEVICE;
     
