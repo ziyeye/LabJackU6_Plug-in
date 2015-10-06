@@ -429,14 +429,6 @@ bool LabJackU6Device::initialize() {
     
     setupU6PortsAndRestartIfDead();
     
-    voltage.clear();                       // clear voltage vector
-    pmw.clear();                           // clear pmw vector
-    
-    if (loadLEDTable(voltage, pmw) != 0) { // Load calibration table into array
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error loading Calibration table");
-        return false;
-    }
-
     if (VERBOSE_IO_DEVICE >= 0) {
         mprintf("LabJackU6Device::initialize: found LabJackU6");
     }
@@ -555,6 +547,14 @@ bool LabJackU6Device::startDeviceIO(){
         return false;
     }
     
+    voltage.clear();                       // clear voltage vector
+    pmw.clear();                           // clear pmw vector
+    
+    if (loadLEDTable(voltage, pmw) != 0) { // Load calibration table into array
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error loading Calibration table");
+        return false;
+    }
+
     
     //debug read in vector
     //mprintf("voltage[0] is: %g", voltage[0]);
