@@ -110,7 +110,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     //info.addParameter(COUNTER3, "0");
     //info.addParameter(COUNTER4, "0");
     info.addParameter(QUADRATURE, "0");
-    info.addParameter(OPTIC_DEVICE, "true");
+    info.addParameter(OPTIC_DEVICE, "led");
 }
 
 
