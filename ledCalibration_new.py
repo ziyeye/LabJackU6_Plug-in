@@ -19,6 +19,9 @@ d.getCalibrationData() # get calibration info for U6
 #pH, = pl.plot(0,0, 'b.-')
 #pl.xlabel('Command Voltage (V)')
 #pl.ylabel('Calculated LED Output (mW)')
+DAC0_value = d.voltageToDACBits(0, dacNumber = 0, is16Bits = False)
+d.getFeedback(u6.DAC0_8(DAC0_value))
+
 device_type = raw_input('Are you calibrating led or laser? ')
 # Set DAC0 to 2V and get analog reading from AIN0 to calculate scale
 if device_type == "led":
