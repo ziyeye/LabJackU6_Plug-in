@@ -80,10 +80,13 @@ pl.close
 dirname = "/Users/hullglick/Documents/Calibration_Table/" + todaystr;
 if not os.path.exists(dirname):
     os.makedirs(dirname)
-
+    outName = device_type + ".txt"
+elif os.path.exists(dirname):
+    print "writing path alread exists and file to be written is renamed as 2.txt"
+    outName = device_type + "2.txt"
 os.chdir(dirname)
 
-outName = device_type + ".txt"
+
 print dirname + "/" + outName +" is written."
 
 fd = open(outName, 'w')
