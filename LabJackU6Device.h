@@ -81,7 +81,7 @@ protected:
 	boost::shared_ptr <Variable> tTrialLaserPowerMw;
     boost::shared_ptr <Variable> laserTrigger;
 	boost::shared_ptr <Variable> strobedDigitalWord;
-	boost::shared_ptr <Variable> counter1;
+	boost::shared_ptr <Variable> counter;
 	boost::shared_ptr <Variable> counter2;
     //boost::shared_ptr <Variable> counter3;
 	//boost::shared_ptr <Variable> counter4;
@@ -116,7 +116,7 @@ public:
     static const std::string TRIAL_LASER_POWERMW;
     static const std::string LASER_TRIGGER;
     static const std::string STROBED_DIGITAL_WORD;
-    static const std::string COUNTER1;
+    static const std::string COUNTER;
     static const std::string COUNTER2;
     //static const std::string COUNTER3;
     //static const std::string COUNTER4;

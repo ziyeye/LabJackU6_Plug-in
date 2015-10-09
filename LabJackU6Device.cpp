@@ -61,7 +61,7 @@ const std::string LabJackU6Device::LEVER1_SOLENOID("lever1_solenoid");
 const std::string LabJackU6Device::TRIAL_LASER_POWERMW("trial_laser_powerMw");
 const std::string LabJackU6Device::LASER_TRIGGER("laser_trigger");
 const std::string LabJackU6Device::STROBED_DIGITAL_WORD("strobed_digital_word");
-const std::string LabJackU6Device::COUNTER1("counter1");
+const std::string LabJackU6Device::COUNTER("counter");
 const std::string LabJackU6Device::COUNTER2("counter2");
 //const std::string LabJackU6Device::COUNTER3("counter3");
 //const std::string LabJackU6Device::COUNTER4("counter4");
@@ -105,7 +105,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(TRIAL_LASER_POWERMW, "0");
     info.addParameter(LASER_TRIGGER, "false");
     info.addParameter(STROBED_DIGITAL_WORD, "0");
-    info.addParameter(COUNTER1, "0");
+    info.addParameter(COUNTER, "0");
     info.addParameter(COUNTER2, "0");
     //info.addParameter(COUNTER3, "0");
     //info.addParameter(COUNTER4, "0");
@@ -125,7 +125,7 @@ lever1Solenoid(parameters[LEVER1_SOLENOID]),
 tTrialLaserPowerMw(parameters[TRIAL_LASER_POWERMW]),
 laserTrigger(parameters[LASER_TRIGGER]),
 strobedDigitalWord(parameters[STROBED_DIGITAL_WORD]),
-counter1(parameters[COUNTER1]),
+counter(parameters[COUNTER]),
 counter2(parameters[COUNTER2]),
 //counter3(parameters[COUNTER3]),
 //counter4(parameters[COUNTER4]),
@@ -853,8 +853,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     //counterValue[3] = CFSwapInt32LittleToHost(counterValue[3]);
     
     // Update counter variables (only if counter value has changed)
-    if (counter1->getValue().getInteger() != counterValue[0]) {
-        counter1->setValue(long(counterValue[0]));
+    if (counter->getValue().getInteger() != counterValue[0]) {
+        counter->setValue(long(counterValue[0]));
     }
     
     if (counter2->getValue().getInteger() != counterValue[1]) {
