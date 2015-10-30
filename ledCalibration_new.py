@@ -30,10 +30,10 @@ if device_type == "led":
     nVPts  = 51
     DAC0_value = d.voltageToDACBits(2, dacNumber = 0, is16Bits = False)
 elif device_type == "laser":
-    startV = 1.43
-    stopV  = 2.1
-    nVPts  = 101
-    DAC0_value = d.voltageToDACBits(1.8, dacNumber = 0, is16Bits = False)
+    startV = 1.6
+    stopV  = 2.15
+    nVPts  = 21
+    DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
 
 d.getFeedback(u6.DAC0_8(DAC0_value))
 
@@ -48,7 +48,7 @@ respV = vLevels*np.nan # initialize led power array
 for (tVNum,tV) in enumerate(vLevels):
     
     #volts = (tV*np.ones(1))
-    print(tV)
+    print [ tV ]
     
     #set DAC0
     DAC0_value = d.voltageToDACBits(tV, dacNumber = 0, is16Bits = False)
@@ -86,7 +86,7 @@ if not os.path.exists(dirname):
     outName = device_type + ".txt"
 elif os.path.exists(dirname):
     print "writing path alread exists and file to be written is renamed as 2.txt"
-    outName = device_type + "2.txt"
+    outName = device_type + "7.txt"
 os.chdir(dirname)
 
 
