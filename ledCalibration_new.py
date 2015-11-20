@@ -1,28 +1,23 @@
 #! /usr/bin/python
 import u6
-import pylab as pl
-from pylab import plot, show
+import pylab
 import numpy as np
 import time, datetime, os
 
-today = datetime.date.today()
+today       = datetime.date.today() # get time string for folder name
+todaystr    = today.isoformat()
 
-todaystr = today.isoformat()
-
-d = u6.U6() # open LabJack U6
+d           = u6.U6() # open LabJack U6
 
 d.getCalibrationData() # get calibration info for U6
 
-#power_2V = 0.64
-# setup plotting
-#pl.ion()
-#pH, = pl.plot(0,0, 'b.-')
-#pl.xlabel('Command Voltage (V)')
-#pl.ylabel('Calculated LED Output (mW)')
+# turn off device first
 DAC0_value = d.voltageToDACBits(0, dacNumber = 0, is16Bits = False)
 d.getFeedback(u6.DAC0_8(DAC0_value))
 
 device_type = raw_input('Are you calibrating led or laser? ')
+fiber_type  = raw_input('What is your fiber diameter(nm)? ')
+
 # Set DAC0 to 2V and get analog reading from AIN0 to calculate scale
 if device_type == "led":
     startV = 0
@@ -39,24 +34,24 @@ d.getFeedback(u6.DAC0_8(DAC0_value))
 
 power_2V=float(raw_input('Press enter Power Reading on Photometer: '))
 
-scale = power_2V/d.getAIN(0) 
+scale = power_2V/d.getAIN(0) # get scale for photometer
 
 vLevels = np.linspace(startV, stopV, nVPts)
 print vLevels
 respV = vLevels*np.nan # initialize led power array
 
 for (tVNum,tV) in enumerate(vLevels):
-    
-    #volts = (tV*np.ones(1))
+
     print [ tV ]
     
     #set DAC0
     DAC0_value = d.voltageToDACBits(tV, dacNumber = 0, is16Bits = False)
     d.getFeedback(u6.DAC0_8(DAC0_value))
     if device_type == "led":
-        time.sleep(3)  # wait for 3s
+        time.sleep(4)  # wait for 3s
     elif device_type == "laser":
         time.sleep(10)
+
     # read resulting analog AIN0
     ainValue = d.getAIN(0)
    
@@ -67,26 +62,21 @@ for (tVNum,tV) in enumerate(vLevels):
 
     #noNanIx = np.logical_not(np.isnan(respV))
 
-    #pH.set_xdata(vLevels[noNanIx])
-    #pH.set_ydata(np.array(respV[noNanIx]))
-    #pl.gca().relim()
-    #pl.gca().autoscale_view(1,1,1)
-    #pl.draw()
-    #pl.close
 
-    #pl.pause(1.0)
+pylab.plot(vLevels, respV)
+pylab.xlabel('Voltage')
+pylab.ylabel('Power(mW)')
+
 DAC0_value = d.voltageToDACBits(0, dacNumber = 0, is16Bits = False)
 d.getFeedback(u6.DAC0_8(DAC0_value))
 
-pl.close
-
-dirname = "/Users/hullglick/Documents/Calibration_Table/" + todaystr;
+dirname = "/Users/hullglick/Documents/Calibration_Table/" + todaystr + "fiber" + fiber_type;
 if not os.path.exists(dirname):
     os.makedirs(dirname)
     outName = device_type + ".txt"
 elif os.path.exists(dirname):
     print "writing path alread exists and file to be written is renamed as 2.txt"
-    outName = device_type + "7.txt"
+    outName = device_type + "2.txt"
 os.chdir(dirname)
 
 
