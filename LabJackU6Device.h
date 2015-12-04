@@ -90,6 +90,7 @@ protected:
 	//boost::shared_ptr <Variable> counter4;
 	boost::shared_ptr <Variable> quadrature;
     boost::shared_ptr <Variable> optic_device;
+    boost::shared_ptr <Variable> do2led;
     boost::shared_ptr <Variable> led_seq;
     boost::shared_ptr <Variable> led1_status;
     boost::shared_ptr <Variable> led2_status;
@@ -128,6 +129,7 @@ public:
     //static const std::string COUNTER4;
     static const std::string QUADRATURE;
     static const std::string OPTIC_DEVICE;
+    static const std::string DO2LED;
     static const std::string LED_SEQ;
     static const std::string LED1_STATUS;
     static const std::string LED2_STATUS;
@@ -156,7 +158,7 @@ public:
 	void leverSolenoidDO(bool state);
 	void laserDO(double laserPower);
     void laserDO2(bool state);   //optic switch
-    void do2led();
+    void ledDo2(bool state);     //turn two leds for wide field
 	void strobedDigitalWordDO(unsigned int digWord);
     
     
@@ -193,6 +195,13 @@ public:
         if (getActive()) {
             bool laserState = (bool)data;
             this->laserDO2(laserState);
+        }
+    }
+    
+    virtual void set2LEDTrigger(Datum data) {
+        if (getActive()) {
+            bool do2ledState = (bool)data;
+            this->ledDo2(do2ledState);
         }
     }
     
@@ -281,6 +290,20 @@ public:
     virtual void notify(const Datum& data, MWTime timeUS){
         shared_ptr<LabJackU6Device> shared_daq(daq);
         shared_daq->setLaserTrigger2(data);
+    }
+};
+
+class LabJackU6DeviceLED2Notification : public VariableNotification {
+    
+protected:
+    weak_ptr<LabJackU6Device> daq;
+public:
+    LabJackU6DeviceLED2Notification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->set2LEDTrigger(data);
     }
 };
 

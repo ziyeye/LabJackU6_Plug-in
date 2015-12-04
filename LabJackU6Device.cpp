@@ -70,6 +70,7 @@ const std::string LabJackU6Device::COUNTER2("counter2");
 const std::string LabJackU6Device::QUADRATURE("quadrature");
 const std::string LabJackU6Device::OPTIC_DEVICE("optic_device");
 const std::string LabJackU6Device::LED_SEQ("led_seq");
+const std::string LabJackU6Device::DO2LED("do2led");
 const std::string LabJackU6Device::LED1_STATUS("led1_status");
 const std::string LabJackU6Device::LED2_STATUS("led2_status");
 
@@ -116,6 +117,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     //info.addParameter(COUNTER4, "0");
     info.addParameter(QUADRATURE, "0");
     info.addParameter(OPTIC_DEVICE, "led");
+    info.addParameter(DO2LED,"0");
     info.addParameter(LED_SEQ,"0");
     info.addParameter(LED1_STATUS,"false");
     info.addParameter(LED2_STATUS,"false");
@@ -140,6 +142,7 @@ counter2(parameters[COUNTER2]),
 //counter4(parameters[COUNTER4]),
 quadrature(parameters[QUADRATURE]),
 optic_device(parameters[OPTIC_DEVICE]),
+do2led(parameters[DO2LED]),
 led_seq(parameters[LED_SEQ]),
 led1_status(parameters[LED1_STATUS]),
 led2_status(parameters[LED2_STATUS]),
@@ -288,7 +291,7 @@ void LabJackU6Device::laserDO2(bool state) {
 }
 
 
-void LabJackU6Device::do2led(){
+void LabJackU6Device::ledDo2(bool state){
     // Takes and releases driver lock
     
     boost::mutex::scoped_lock lock(ljU6DriverLock);
@@ -308,7 +311,7 @@ void LabJackU6Device::do2led(){
     
     int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
     
-    int led_port = led_seq->getValue().getElement(led_index);
+    int led_port = int(led_seq->getValue().getElement(led_index));
     
     if (int(camera_state) != lastCameraState && camera_state > 0) {
         /*string led_index = led_seq->getValue().getString();
@@ -733,6 +736,11 @@ void LabJackU6Device::variableSetup() {
     shared_ptr<VariableNotification> notif3a(new LabJackU6DeviceLT2Notification(weak_self_ref));
     doLT2->addNotification(notif3a);
     
+    // laserTrigger for do2LED
+    shared_ptr<Variable> doLED2 = this->do2led;
+    shared_ptr<VariableNotification> notif3b(new LabJackU6DeviceLED2Notification(weak_self_ref));
+    doLED2->addNotification(notif3b);
+
     // strobedDigitalWord
     shared_ptr<Variable> doSDW = this->strobedDigitalWord;
     shared_ptr<VariableNotification> notif4(new LabJackU6DeviceSDWNotification(weak_self_ref));
