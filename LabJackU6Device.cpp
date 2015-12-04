@@ -590,6 +590,10 @@ bool LabJackU6Device::stopDeviceIO(){
         this->lever1Solenoid->setValue(false);
         leverSolenoidDO(false);
         
+        // turn off laser/led and optic switch
+        laserDO(0);
+        laserDo2(0);
+        
         return false;
     }
     
