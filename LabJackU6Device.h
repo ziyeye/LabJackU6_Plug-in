@@ -37,6 +37,8 @@
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
 #define LJU6_LEVER1_FIO         1
+#define LJU6_LED1_FIO           2
+#define LJU6_LED2_FIO           3
 #define LJU6_TCPIN_OFFSET       4 // Timer offset pin
 
 #define LJU6_CIO_OFFSET         16
@@ -61,6 +63,7 @@ protected:
     
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
+    int lastCameraState;
     unsigned int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
@@ -87,6 +90,9 @@ protected:
 	//boost::shared_ptr <Variable> counter4;
 	boost::shared_ptr <Variable> quadrature;
     boost::shared_ptr <Variable> optic_device;
+    boost::shared_ptr <Variable> led_seq;
+    boost::shared_ptr <Variable> led1_status;
+    boost::shared_ptr <Variable> led2_status;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -122,6 +128,9 @@ public:
     //static const std::string COUNTER4;
     static const std::string QUADRATURE;
     static const std::string OPTIC_DEVICE;
+    static const std::string LED_SEQ;
+    static const std::string LED1_STATUS;
+    static const std::string LED2_STATUS;
     
     static void describeComponent(ComponentInfo &info);
 	
@@ -146,9 +155,11 @@ public:
 	void pulseDOLow();
 	void leverSolenoidDO(bool state);
 	void laserDO(double laserPower);
-    void laserDO2(bool state);
+    void laserDO2(bool state);   //optic switch
+    void do2led();
 	void strobedDigitalWordDO(unsigned int digWord);
-	
+    
+    
     // two functions to do linear interpolation on LED power
     int findNearestNeighbourIndex( double value, const std::vector< double > &x );
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );

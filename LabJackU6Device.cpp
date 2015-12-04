@@ -34,9 +34,11 @@ using std::vector;
 
 static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit manipulation
     (  (0x01 << LJU6_REWARD_FIO)                                // FIO
-     |  (0x00 << LJU6_LEVER1_FIO) ),
-    0xff,                                                       // EIO
-    ( (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))     // CIO
+     | (0x00 << LJU6_LEVER1_FIO)
+     | (0x01 << LJU6_LED1_FIO)
+     | (0x01 << LJU6_LED2_FIO)),
+        0xff,                                                       // EIO
+    (  (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))     // CIO
      | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET)) )
 };
@@ -67,6 +69,9 @@ const std::string LabJackU6Device::COUNTER2("counter2");
 //const std::string LabJackU6Device::COUNTER4("counter4");
 const std::string LabJackU6Device::QUADRATURE("quadrature");
 const std::string LabJackU6Device::OPTIC_DEVICE("optic_device");
+const std::string LabJackU6Device::LED_SEQ("led_seq");
+const std::string LabJackU6Device::LED1_STATUS("led1_status");
+const std::string LabJackU6Device::LED2_STATUS("led2_status");
 
 
 /* Notes to self MH 100422
@@ -111,6 +116,10 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     //info.addParameter(COUNTER4, "0");
     info.addParameter(QUADRATURE, "0");
     info.addParameter(OPTIC_DEVICE, "led");
+    info.addParameter(LED_SEQ,"0");
+    info.addParameter(LED1_STATUS,"false");
+    info.addParameter(LED2_STATUS,"false");
+    
 }
 
 
@@ -131,6 +140,10 @@ counter2(parameters[COUNTER2]),
 //counter4(parameters[COUNTER4]),
 quadrature(parameters[QUADRATURE]),
 optic_device(parameters[OPTIC_DEVICE]),
+led_seq(parameters[LED_SEQ]),
+led1_status(parameters[LED1_STATUS]),
+led2_status(parameters[LED2_STATUS]),
+lastCameraState(0),
 deviceIOrunning(false),
 ljHandle(NULL),
 trial(0),
@@ -273,6 +286,69 @@ void LabJackU6Device::laserDO2(bool state) {
     }
     
 }
+
+
+void LabJackU6Device::do2led(){
+    // Takes and releases driver lock
+    
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
+    
+    double camera_state;
+    u6CalibrationInfo CalibInfo;          // get calibration struct
+    
+    mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
+    
+    if( getCalibrationInfo(ljHandle, &CalibInfo) < 0 ) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error Calibrating LabJack U6.");
+    }
+    
+    if( ( eAIN(ljHandle, &CalibInfo, 0, 15, &camera_state, 0, 0, 0, 0, 0, 0)) != 0 ) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error Reading Analog Input from LabJack U6.");
+    }
+    
+    int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
+    
+    int led_port = led_seq->getValue().getElement(led_index);
+    
+    if (int(camera_state) != lastCameraState && camera_state > 0) {
+        /*string led_index = led_seq->getValue().getString();
+        std::vector<int> led_i;
+        std::stringstream ss(led_index);
+        int value;
+        while (ss >> value)
+        {
+            led_i.push_back(value);
+            
+            if (ss.peek() == ' ')
+                ss.ignore();
+        }
+         */
+        lastCameraState = int(camera_state);
+        
+        if (ljU6WriteDO(ljHandle, led_port, 1) != true) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing 2led state high; device likely to be broken");
+        }
+        if (led_port == 2)
+            this->led1_status-> setValue(true);
+        if (led_port == 3)
+            this->led2_status-> setValue(true);
+        
+    } else if (int(camera_state) != lastCameraState && camera_state < 0) {
+        
+        lastCameraState = int(camera_state);
+        
+        if (ljU6WriteDO(ljHandle, led_port, 0) != true) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing 2led state low; device likely to be broken");
+        }
+        if (led_port == 2)
+            this->led1_status-> setValue(false);
+        if (led_port == 3)
+            this->led2_status-> setValue(false);
+    }
+    
+    
+}
+
 
 void LabJackU6Device::strobedDigitalWordDO(unsigned int digWord) {
     // Takes and releases driver lock
@@ -460,6 +536,14 @@ bool LabJackU6Device::initialize() {
         return false; // merror is done in ljU6WriteDO
     this->strobedDigitalWord->setValue(Datum(M_INTEGER, 0));
     
+    if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+    this->led1_status->setValue(Datum(M_BOOLEAN,0));
+    
+    if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+    this->led2_status->setValue(Datum(M_BOOLEAN,0));
+    
     //mprintf("Initialize()\n");
     return true;
 }
@@ -590,9 +674,6 @@ bool LabJackU6Device::stopDeviceIO(){
         this->lever1Solenoid->setValue(false);
         leverSolenoidDO(false);
         
-        // turn off laser/led and optic switch
-        laserDO(0);
-        laserDo2(0);
         
         return false;
     }
@@ -610,6 +691,20 @@ bool LabJackU6Device::stopDeviceIO(){
     
     //setActive(false);   // MH - by leaving active == true, we can use the Reward window to schedule pulses when trials are not running
     deviceIOrunning = false;
+    
+    // turn off laser/led and optic switch
+    laserDO(0);
+    laserDO2(false);
+    
+    if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+    
+    if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+
+    this->led1_status->setValue(false);
+    this->led2_status->setValue(false);
+
     return true;
 }
 

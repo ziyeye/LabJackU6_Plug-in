@@ -32,6 +32,9 @@ Used for interfacing to a LabJack U6
                       counter2=""
                       quadrature=""
                       optic_device=""
+                      led_seq=""
+                      led1_status=""
+                      led2_status=""
                       />
         </code>
     </MWElement>

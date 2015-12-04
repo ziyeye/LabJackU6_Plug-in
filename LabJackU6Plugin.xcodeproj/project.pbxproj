@@ -317,6 +317,7 @@
 				);
 				OTHER_LDFLAGS = "-headerpad_max_install_names";
 				PRODUCT_NAME = LabJackU6Plugin;
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = bundle;
 			};
 			name = Development;
