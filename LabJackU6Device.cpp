@@ -313,7 +313,7 @@ void LabJackU6Device::ledDo2(bool state){
     
     int led_port = int(led_seq->getValue().getElement(led_index));
     
-    if (int(camera_state) != lastCameraState && camera_state > 0) {
+    if (int(camera_state) != lastCameraState && camera_state > 2) {
         /*string led_index = led_seq->getValue().getString();
         std::vector<int> led_i;
         std::stringstream ss(led_index);
@@ -336,7 +336,7 @@ void LabJackU6Device::ledDo2(bool state){
         if (led_port == 3)
             this->led2_status-> setValue(true);
         
-    } else if (int(camera_state) != lastCameraState && camera_state < 0) {
+    } else if (int(camera_state) != lastCameraState && camera_state < 2) {
         
         lastCameraState = int(camera_state);
         
