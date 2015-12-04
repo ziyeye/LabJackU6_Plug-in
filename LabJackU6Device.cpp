@@ -117,8 +117,8 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     //info.addParameter(COUNTER4, "0");
     info.addParameter(QUADRATURE, "0");
     info.addParameter(OPTIC_DEVICE, "led");
-    info.addParameter(DO2LED,"0");
-    info.addParameter(LED_SEQ,"0");
+    info.addParameter(DO2LED,"false");
+    info.addParameter(LED_SEQ);
     info.addParameter(LED1_STATUS,"false");
     info.addParameter(LED2_STATUS,"false");
     
@@ -150,7 +150,6 @@ lastCameraState(0),
 deviceIOrunning(false),
 ljHandle(NULL),
 trial(0),
-//CalibInfo({0}),
 lastLever1Value(-1),  // -1 means always report first value
 lastLever1TransitionTimeUS(0)
 {
