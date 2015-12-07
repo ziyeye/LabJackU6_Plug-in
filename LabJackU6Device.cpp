@@ -327,7 +327,7 @@ void LabJackU6Device::ledDo2(bool state){
          */
         lastCameraState = int(camera_state);
         
-        if (ljU6WriteDO(ljHandle, led_port, 1) != true) {
+        if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing 2led state high; device likely to be broken");
         }
         if (led_port == 2)
@@ -339,7 +339,7 @@ void LabJackU6Device::ledDo2(bool state){
         
         lastCameraState = int(camera_state);
         
-        if (ljU6WriteDO(ljHandle, led_port, 0) != true) {
+        if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing 2led state low; device likely to be broken");
         }
         if (led_port == 2)
