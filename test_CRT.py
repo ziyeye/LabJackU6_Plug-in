@@ -6,7 +6,7 @@ import numpy
 d           = u6.U6() # open LabJack U6
 
 d.getCalibrationData() # get calibration info for U6
-
+runtime=[]
 for i in range(0,1000):
 	t1 = time.time()
 
@@ -15,7 +15,6 @@ for i in range(0,1000):
 	ain = d.getAIN(0)
 
 	if ain > 1:
-		t2 = time.time()
-		runtime[i] = t2-t1
+		runtime.append(time.time()-t1)
 	
 print numpy.mean(runtime)
