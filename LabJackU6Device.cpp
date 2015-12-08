@@ -37,10 +37,11 @@ static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit m
      | (0x00 << LJU6_LEVER1_FIO)
      | (0x01 << LJU6_LED1_FIO)
      | (0x01 << LJU6_LED2_FIO)),
-        0xff,                                                       // EIO
-    (  (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))     // CIO
+        0xff,
+    (  (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET))
+     | (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET))
-     | (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET)) )
+     | (0x00 << (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET)) )
 };
 
 // Copied from libusb.h
@@ -295,24 +296,19 @@ void LabJackU6Device::ledDo2(bool state){
     
     boost::mutex::scoped_lock lock(ljU6DriverLock);
     
-    double camera_state;
-    u6CalibrationInfo CalibInfo;          // get calibration struct
+    long camera_state;
     
     mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
     
-    if( getCalibrationInfo(ljHandle, &CalibInfo) < 0 ) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error Calibrating LabJack U6.");
-    }
-    
-    if( ( eAIN(ljHandle, &CalibInfo, 0, 15, &camera_state, 0, 0, 0, 0, 0, 0)) != 0 ) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error Reading Analog Input from LabJack U6.");
+    if (eDI(ljHandle, LJU6_QTRIGGER_CIO, &camera_state) != 0 ) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: Reading MIO2 state");
     }
     
     int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
     
     int led_port = int(led_seq->getValue().getElement(led_index));
     
-    if (int(camera_state) != lastCameraState && camera_state > 2) {
+    if (int(camera_state) != lastCameraState && int(camera_state) > 0) {
         /*string led_index = led_seq->getValue().getString();
         std::vector<int> led_i;
         std::stringstream ss(led_index);
@@ -335,7 +331,7 @@ void LabJackU6Device::ledDo2(bool state){
         if (led_port == 3)
             this->led2_status-> setValue(true);
         
-    } else if (int(camera_state) != lastCameraState && camera_state < 2) {
+    } else if (int(camera_state) != lastCameraState && int(camera_state) < 1) {
         
         lastCameraState = int(camera_state);
         

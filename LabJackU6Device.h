@@ -45,8 +45,8 @@
 
 #define LJU6_LEVER1SOLENOID_CIO 16
 #define LJU6_LASERTRIGGER_CIO   17
-#define LJU6_STROBE_CIO         18
-
+#define LJU6_STROBE_CIO         19
+#define LJU6_QTRIGGER_CIO       18
 
 #define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 
