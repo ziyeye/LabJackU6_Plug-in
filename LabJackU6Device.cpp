@@ -185,6 +185,45 @@ void *endPulse(const shared_ptr<LabJackU6Device> &gp) {
     return(NULL);
 }
 
+// External function for scheduling
+
+void *update_lever(const weak_ptr<LabJackU6Device> &gp){
+    shared_ptr <Clock> clock = Clock::instance();
+    shared_ptr <LabJackU6Device> sp = gp.lock();
+    sp->pollAllDI();
+    sp.reset();
+    return NULL;
+}
+
+
+bool LabJackU6Device::pollAllDI() {
+    
+    bool lever1Value;
+    bool cameraState;
+    
+    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "levers: %d %d", lever1Value, lever2Value);
+    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Camera State: %d:", cameraState);
+        
+    if (readLeverDI(&lever1Value, &cameraState) != true) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "LJU6: error in readLeverDI()");
+    }
+    
+    // Change MW variable value only if switch state is unchanged, or this is the first time through
+    if ( (lastLever1Value == -1) // -1 means first time through
+        || (lever1Value != lastLever1Value) ) {
+        
+        lever1->setValue(Datum(lever1Value));
+        lastLever1Value = lever1Value;
+        
+    }
+    
+    if(do2led->getValue().getBool() == true ) {
+        ledDo2(cameraState);
+    }
+    
+    return true;
+}
+
 
 void LabJackU6Device::pulseDOHigh(int pulseLengthUS) {
     shared_ptr <Clock> clock = Clock::instance();
@@ -291,59 +330,57 @@ void LabJackU6Device::laserDO2(bool state) {
 }
 
 
-void LabJackU6Device::ledDo2(bool state){
+bool LabJackU6Device::ledDo2(bool &cameraState){
     // Takes and releases driver lock
     
     boost::mutex::scoped_lock lock(ljU6DriverLock);
     
-    long camera_state;
+    //long camera_state;
     
-    mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
+    //lastCounterValue = int(counter->getValue().getInteger());
+    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
     
-    if (eDI(ljHandle, LJU6_QTRIGGER_CIO, &camera_state) != 0 ) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: Reading MIO2 state");
-    }
+    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "camera state MIO2: %d and last camera state: %d", cameraState, lastCameraState);
     
     int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
     
     int led_port = int(led_seq->getValue().getElement(led_index));
     
-    if (int(camera_state) != lastCameraState && int(camera_state) > 0) {
-        /*string led_index = led_seq->getValue().getString();
-        std::vector<int> led_i;
-        std::stringstream ss(led_index);
-        int value;
-        while (ss >> value)
-        {
-            led_i.push_back(value);
-            
-            if (ss.peek() == ' ')
-                ss.ignore();
-        }
-         */
-        lastCameraState = int(camera_state);
+    if (cameraState != lastCameraState && cameraState > 0) {
+        
+        lastCameraState = 1;
         
         if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing 2led state high; device likely to be broken");
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
         }
+        //long test_time = getTickCount();
+        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
+        
+        if (led_port == 1)
+            led1_status-> setValue(true);
         if (led_port == 2)
-            this->led1_status-> setValue(true);
-        if (led_port == 3)
-            this->led2_status-> setValue(true);
+            led2_status-> setValue(true);
         
-    } else if (int(camera_state) != lastCameraState && int(camera_state) < 1) {
+        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
         
-        lastCameraState = int(camera_state);
+    } else if (cameraState != lastCameraState && cameraState == 0) {
+        
+        lastCameraState = 0;
         
         if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing 2led state low; device likely to be broken");
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
         }
-        if (led_port == 2)
-            this->led1_status-> setValue(false);
-        if (led_port == 3)
-            this->led2_status-> setValue(false);
+        //long test_time = getTickCount();
+        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led off: %ld", test_time);
+        
+        led1_status-> setValue(false);
+        
+        led2_status-> setValue(false);
+        
+        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
     }
     
+    return true;
     
 }
 
@@ -358,7 +395,7 @@ void LabJackU6Device::strobedDigitalWordDO(unsigned int digWord) {
 }
 
 
-bool LabJackU6Device::readLeverDI(bool *outLever1)
+bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState)
 // Takes the driver lock and releases it
 {
     shared_ptr <Clock> clock = Clock::instance();
@@ -414,13 +451,16 @@ bool LabJackU6Device::readLeverDI(bool *outLever1)
     
     *outLever1 = lever1State;
     
+    // if camera is on
+    *cameraState = (cioState >> (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET) ) & 0x01;
+    
     // to reset "trial" counts (how many times functions are called)
     if (trial > 10000) {
         trial = 1;
     } else {
         trial++;
     }
-    
+     
     return(1);
 }
 
@@ -443,39 +483,6 @@ void debounce_bit(unsigned int *thisState, unsigned int *lastState, MWTime *last
 }
 
 
-// External function for scheduling
-
-void *update_lever(const weak_ptr<LabJackU6Device> &gp){
-    shared_ptr <Clock> clock = Clock::instance();
-    shared_ptr <LabJackU6Device> sp = gp.lock();
-    sp->pollAllDI();
-    sp.reset();
-    return NULL;
-}
-
-bool LabJackU6Device::pollAllDI() {
-    
-    bool lever1Value;
-    bool res;
-    
-    res = readLeverDI(&lever1Value);
-    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "levers: %d %d", lever1Value, lever2Value);
-    
-    if (!res) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "LJU6: error in readLeverDI()");
-    }
-    
-    // Change MW variable value only if switch state is unchanged, or this is the first time through
-    if ( (lastLever1Value == -1) // -1 means first time through
-        || (lever1Value != lastLever1Value) ) {
-        
-        lever1->setValue(Datum(lever1Value));
-        lastLever1Value = lever1Value;
-        
-    }
-    
-    return true;
-}
 
 
 
@@ -652,6 +659,8 @@ bool LabJackU6Device::startDeviceIO(){
                                              LJU6_DITASK_FAIL_SLOP_US,
                                              M_MISSED_EXECUTION_DROP);
     
+    //ledDo2();
+    
     //schedule_nodes.push_back(pollScheduleNode);
     //	schedule_nodes_lock.unlock();		// Seems to be no longer supported in MWorks
     //mprintf("startDeviceIO()");
@@ -732,9 +741,9 @@ void LabJackU6Device::variableSetup() {
     doLT2->addNotification(notif3a);
     
     // laserTrigger for do2LED
-    shared_ptr<Variable> doLED2 = this->do2led;
-    shared_ptr<VariableNotification> notif3b(new LabJackU6DeviceLED2Notification(weak_self_ref));
-    doLED2->addNotification(notif3b);
+    //shared_ptr<Variable> doLED2 = this->do2led;
+    //shared_ptr<VariableNotification> notif3b(new LabJackU6DeviceLED2Notification(weak_self_ref));
+    //doLED2->addNotification(notif3b);
 
     // strobedDigitalWord
     shared_ptr<Variable> doSDW = this->strobedDigitalWord;
@@ -972,6 +981,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         counter4->setValue(long(counterValue[3]));
     }
     */
+    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
     
     return 0;
     

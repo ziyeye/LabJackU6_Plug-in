@@ -30,7 +30,7 @@
 #undef VERBOSE_IO_DEVICE
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
-#define LJU6_DITASK_UPDATE_PERIOD_US 15000
+#define LJU6_DITASK_UPDATE_PERIOD_US 1000    // "sampling time" in MWorks, not going faster than this?
 #define LJU6_DITASK_WARN_SLOP_US     50000
 #define LJU6_DITASK_FAIL_SLOP_US     50000
 
@@ -45,8 +45,8 @@
 
 #define LJU6_LEVER1SOLENOID_CIO 16
 #define LJU6_LASERTRIGGER_CIO   17
-#define LJU6_STROBE_CIO         19
 #define LJU6_QTRIGGER_CIO       18
+#define LJU6_STROBE_CIO         19 // not using it now
 
 #define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 
@@ -64,6 +64,7 @@ protected:
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
     int lastCameraState;
+
     unsigned int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
@@ -75,7 +76,6 @@ protected:
 	MWTime						highTimeUS;  // Used to compute length of scheduled high/low pulses
 	
 	HANDLE                      ljHandle;   // LabJack device handle
-    //u6CalibrationInfo           CalibInfo;  // LabJack calibration
     
 	boost::shared_ptr <Variable> pulseDuration;
 	boost::shared_ptr <Variable> pulseOn;
@@ -101,19 +101,15 @@ protected:
 	boost::mutex active_mutex;
 	bool deviceIOrunning;
 	
-    //double voltage[TABLE_SIZE];    // voltage array of LED table
-    //double pmw[TABLE_SIZE];        // LED power array
     std::vector<double> voltage;
     std::vector<double> pmw;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
-	bool ljU6ReadDI(HANDLE Handle, long Channel, long* State);
 	bool ljU6WriteDO(HANDLE Handle, long Channel, long State);
     bool ljU6WriteLaser(HANDLE Handle, double laserPower);
 	bool ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord);
 	long ljU6ReadPorts(HANDLE Handle, unsigned int *fioState, unsigned int *eioState, unsigned int *cioState);
-    //long ljU6CounterReset(HANDLE Handle);
     
 public:
     static const std::string PULSE_DURATION;
@@ -150,19 +146,19 @@ public:
 	void detachPhysicalDevice();
 	void variableSetup();
 	bool setupU6PortsAndRestartIfDead();
-    int  loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw );
-	
-	bool readLeverDI(bool *outLever1);
+    
+	bool readLeverDI(bool *outLever1, bool *cameraState);
 	void pulseDOHigh(int pulseLengthUS);
 	void pulseDOLow();
 	void leverSolenoidDO(bool state);
 	void laserDO(double laserPower);
     void laserDO2(bool state);   //optic switch
-    void ledDo2(bool state);     //turn two leds for wide field
+    bool ledDo2(bool &cameraState);     //turn two leds for wide field
 	void strobedDigitalWordDO(unsigned int digWord);
     
     
     // two functions to do linear interpolation on LED power
+    int  loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw );
     int findNearestNeighbourIndex( double value, const std::vector< double > &x );
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );
     
@@ -176,6 +172,7 @@ public:
 			}
 		}
 	}
+    
 	virtual void setLever1Solenoid(Datum data) {
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "set 1");
 		if (getActive()) {
@@ -198,13 +195,7 @@ public:
         }
     }
     
-    virtual void set2LEDTrigger(Datum data) {
-        if (getActive()) {
-            bool do2ledState = (bool)data;
-            this->ledDo2(do2ledState);
-        }
-    }
-    
+
 	virtual void setStrobedDigitalWord(Datum data) {
 		if (getActive()) {
 			unsigned int digWord = (int)data;
@@ -293,19 +284,6 @@ public:
     }
 };
 
-class LabJackU6DeviceLED2Notification : public VariableNotification {
-    
-protected:
-    weak_ptr<LabJackU6Device> daq;
-public:
-    LabJackU6DeviceLED2Notification(weak_ptr<LabJackU6Device> _daq){
-        daq = _daq;
-    }
-    virtual void notify(const Datum& data, MWTime timeUS){
-        shared_ptr<LabJackU6Device> shared_daq(daq);
-        shared_daq->set2LEDTrigger(data);
-    }
-};
 
 class LabJackU6DeviceSDWNotification : public VariableNotification {
     
