@@ -64,7 +64,6 @@ protected:
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
     int lastCameraState;
-
     unsigned int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
@@ -151,9 +150,9 @@ public:
 	void pulseDOHigh(int pulseLengthUS);
 	void pulseDOLow();
 	void leverSolenoidDO(bool state);
-	void laserDO(double laserPower);
+	void laserDO(double laserPower);  // LED modulation
     void laserDO2(bool state);   //optic switch
-    bool ledDo2(bool &cameraState);     //turn two leds for wide field
+    bool ledDo2(bool &cameraState);     //control two leds for wide field
 	void strobedDigitalWordDO(unsigned int digWord);
     
     

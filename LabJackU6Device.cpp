@@ -17,6 +17,8 @@
  *
  * 09-10-2015 Ziye - make changes on LaserTrigger so that the voltage is directly
  *            outputed from DAC0 instead of FIO3
+ *
+ * 12-10-2015 Ziye - add control for 2 led syncing with camera
  */
 
 
@@ -217,21 +219,22 @@ bool LabJackU6Device::pollAllDI() {
         
     }
     
-    if(do2led->getValue().getBool() == true ) {
-        ledDo2(cameraState);
-    }
+    // control 2 led if neeeded
+    if(do2led->getValue().getBool() == true ) {       // could have created a separated schedule node
+        ledDo2(cameraState);            // but since we update all ports in pollAllDI, we might just
+    }                               // call do2led here
     
     return true;
 }
 
-
+// set Reward high
 void LabJackU6Device::pulseDOHigh(int pulseLengthUS) {
     shared_ptr <Clock> clock = Clock::instance();
     // Takes and releases pulseScheduleNodeLock
     // Takes and releases driver lock
     
     // Set the DO high first
-    boost::mutex::scoped_lock lock(ljU6DriverLock);  //printf("lock DOhigh\n"); fflush(stdout);
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
     if (ljHandle == NULL) {
         return;
     }
@@ -277,7 +280,7 @@ void LabJackU6Device::pulseDOHigh(int pulseLengthUS) {
     
 }
 
-// set the DO low
+// set the DO low for Reward
 
 void LabJackU6Device::pulseDOLow() {
     
@@ -335,24 +338,23 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
     
     boost::mutex::scoped_lock lock(ljU6DriverLock);
     
-    //long camera_state;
-    
-    //lastCounterValue = int(counter->getValue().getInteger());
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "camera state MIO2: %d and last camera state: %d", cameraState, lastCameraState);
     
+    // calculate led index by counter value and led sequence size
     int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
     
-    int led_port = int(led_seq->getValue().getElement(led_index));
+    int led_port = int(led_seq->getValue().getElement(led_index)) + 1;  // get led # to match labjack port
     
     if (cameraState != lastCameraState && cameraState > 0) {
         
         lastCameraState = 1;
         
-        if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
+        if (ljU6WriteDO(ljHandle, led_port, 1) != true) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
         }
+        // to get excution time in ms and delay could be <=1ms
         //long test_time = getTickCount();
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
         
@@ -367,7 +369,7 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
         
         lastCameraState = 0;
         
-        if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
+        if (ljU6WriteDO(ljHandle, led_port, 0) != true) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
         }
         //long test_time = getTickCount();
@@ -460,12 +462,13 @@ bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState)
     } else {
         trial++;
     }
-     
+    
     return(1);
 }
 
 /*******************************************************************/
-
+// Ziye - I think debounce here would not update state if time elapsed is short than required read time
+// but actually labjack read time is ~ 1ms short enough.
 void debounce_bit(unsigned int *thisState, unsigned int *lastState, MWTime *lastTransitionTimeUS, shared_ptr <Clock> clock) {
     // software debouncing
     if (*thisState != *lastState) {
@@ -929,7 +932,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     
-    quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
+    //quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     // Update quadrature variable (only if quadrature value has changed)
     if (quadrature->getValue().getInteger() != quadratureValue) {
@@ -958,8 +961,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         counterValue[j] = CFSwapInt32LittleToHost(counterValue[j]);  // Convert to host byte order
     }
     
-    counterValue[0] = CFSwapInt32LittleToHost(counterValue[0]);
-    counterValue[1] = CFSwapInt32LittleToHost(counterValue[1]);
+    //counterValue[0] = CFSwapInt32LittleToHost(counterValue[0]);
+    //counterValue[1] = CFSwapInt32LittleToHost(counterValue[1]);
     //counterValue[2] = CFSwapInt32LittleToHost(counterValue[2]);
     //counterValue[3] = CFSwapInt32LittleToHost(counterValue[3]);
     
