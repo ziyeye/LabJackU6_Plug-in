@@ -40,13 +40,13 @@
 #define LJU6_LED1_FIO           2
 #define LJU6_LED2_FIO           3
 #define LJU6_TCPIN_OFFSET       4 // Timer offset pin
-#define LJU6_QTRIGGER_FIO       6
 
 #define LJU6_CIO_OFFSET         16
 
 #define LJU6_LEVER1SOLENOID_CIO 16
 #define LJU6_LASERTRIGGER_CIO   17
-#define LJU6_STROBE_CIO         18 // not using it now
+#define LJU6_QTRIGGER_CIO       18
+#define LJU6_STROBE_CIO         19 // not using it now
 
 #define LJU6_LASERPOWER_DAC     0 // DAC0 as output
 

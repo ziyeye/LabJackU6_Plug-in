@@ -42,8 +42,8 @@ static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit m
         0xff,
     (  (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
-     | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET)) )
-     //| (0x00 << (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET)) )
+     | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET))
+     | (0x00 << (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET)) )
 };
 
 // Copied from libusb.h
@@ -488,8 +488,7 @@ bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState)
     *outLever1 = lever1State;
     
     // if camera is on
-    //*cameraState = (cioState >> (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET) ) & 0x01;
-    *cameraState = (fioState >> LJU6_QTRIGGER_FIO ) & 0x01;
+    *cameraState = (cioState >> (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET) ) & 0x01;
     
     // to reset "trial" counts (how many times functions are called)
     if (trial > 10000) {
