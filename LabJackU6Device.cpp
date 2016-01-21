@@ -695,7 +695,7 @@ bool LabJackU6Device::startDeviceIO(){
                                              M_DEFAULT_IODEVICE_PRIORITY,
                                              LJU6_DITASK_WARN_SLOP_US,
                                              LJU6_DITASK_FAIL_SLOP_US,
-                                             M_MISSED_EXECUTION_CATCH_UP);
+                                             M_MISSED_EXECUTION_DROP);
     
     //ledDo2();
     
