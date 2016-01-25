@@ -269,7 +269,7 @@ void LabJackU6Device::pulseDOHigh(int pulseLengthUS) {
                                                   M_DEFAULT_IODEVICE_PRIORITY,
                                                   M_DEFAULT_IODEVICE_WARN_SLOP_US,
                                                   M_DEFAULT_IODEVICE_FAIL_SLOP_US,
-                                                  M_MISSED_EXECUTION_DROP);
+                                                  M_MISSED_EXECUTION_CATCH_UP);
         
         MWTime current = clock->getCurrentTimeUS();
         if (VERBOSE_IO_DEVICE >= 2) {
@@ -694,7 +694,7 @@ bool LabJackU6Device::startDeviceIO(){
                                              M_DEFAULT_IODEVICE_PRIORITY,
                                              LJU6_DITASK_WARN_SLOP_US,
                                              LJU6_DITASK_FAIL_SLOP_US,
-                                             M_MISSED_EXECUTION_DROP);
+                                             M_MISSED_EXECUTION_CATCH_UP);
     
     //ledDo2();
     
