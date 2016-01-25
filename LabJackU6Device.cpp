@@ -349,7 +349,7 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED Port is  %d", led_port);
     
-    if (cameraState != lastCameraState && cameraState > 0) {
+    if (cameraState != lastCameraState && cameraState > 0 && led_port != 0) {
         
         lastCameraState = 1;
         
@@ -375,7 +375,7 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
         
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
         
-    } else if (cameraState != lastCameraState && cameraState == 0) {
+    } else if (cameraState != lastCameraState && cameraState == 0 && led_port != 0) {
         
         lastCameraState = 0;
         
