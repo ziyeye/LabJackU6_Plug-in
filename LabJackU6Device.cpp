@@ -150,6 +150,7 @@ led_seq(parameters[LED_SEQ]),
 led1_status(parameters[LED1_STATUS]),
 led2_status(parameters[LED2_STATUS]),
 lastCameraState(0),
+ledCount(0),
 deviceIOrunning(false),
 ljHandle(NULL),
 trial(0),
@@ -343,45 +344,51 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "camera state MIO2: %d and last camera state: %d", cameraState, lastCameraState);
     
     // calculate led index by counter value and led sequence size
-    int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
+    //int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
+    // Cannot rely on counter signal from Camera, so set up our own frame counter
+    int led_index = (ledCount) % (led_seq->getValue().getNElements());
     
     int led_port = int(led_seq->getValue().getElement(led_index));  // get led # to match labjack port
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED Port is  %d", led_port);
     
-    if (cameraState != lastCameraState && cameraState > 0 && led_port != 0) {
+    if (cameraState != lastCameraState && cameraState > 0) {
+        ledCount++;
         
         lastCameraState = 1;
         
-        if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+        if (led_port != 0) {
+            if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
+                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+            }
+            if (led_port == 1)
+                led1_status-> setValue(true);
+            if (led_port == 2)
+                led2_status-> setValue(true);
+            
         }
         // to get excution time in ms and delay could be <=1ms
         //long test_time = getTickCount();
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
         
-        if (led_port == 1)
-            led1_status-> setValue(true);
-            //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
+                    //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
             //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
             //}
         
-        if (led_port == 2)
-            led2_status-> setValue(true);
-            //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
+                    //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
             //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
             //}
         
         
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
         
-    } else if (cameraState != lastCameraState && cameraState == 0 && led_port != 0) {
+    } else if (cameraState != lastCameraState && cameraState == 0) {
         
         lastCameraState = 0;
         
-        if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
-        }
+        //if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
+        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
+        //}
         
         //long test_time = getTickCount();
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led off: %ld", test_time);
@@ -508,11 +515,11 @@ void debounce_bit(unsigned int *thisState, unsigned int *lastState, MWTime *last
     if (*thisState != *lastState) {
         if (clock->getCurrentTimeUS() - *lastTransitionTimeUS < kDIDeadtimeUS) {
             *thisState = *lastState;				// discard changes during deadtime
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,
-                     "LabJackU6Device: readLeverDI, debounce rejecting new read (last %lld now %lld, diff %lld)",
-                     *lastTransitionTimeUS,
-                     clock->getCurrentTimeUS(),
-                     clock->getCurrentTimeUS() - *lastTransitionTimeUS);
+            //mwarning(M_IODEVICE_MESSAGE_DOMAIN,
+            //         "LabJackU6Device: readLeverDI, debounce rejecting new read (last %lld now %lld, diff %lld)",
+            //         *lastTransitionTimeUS,
+            //         clock->getCurrentTimeUS(),
+            //         clock->getCurrentTimeUS() - *lastTransitionTimeUS);
         }
         *lastState = *thisState;					// record and report the transition
         *lastTransitionTimeUS = clock->getCurrentTimeUS();

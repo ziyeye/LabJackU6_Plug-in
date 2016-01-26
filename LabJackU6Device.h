@@ -64,6 +64,7 @@ protected:
 	MWTime						lastLever1TransitionTimeUS;
 	int lastLever1Value;
     int lastCameraState;
+    int ledCount;
     unsigned int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
