@@ -30,7 +30,7 @@
 #undef VERBOSE_IO_DEVICE
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
-#define LJU6_DITASK_UPDATE_PERIOD_US 400    // "sampling time" in MWorks, not going faster than this?
+#define LJU6_DITASK_UPDATE_PERIOD_US 500    // "sampling time" in MWorks, not going faster than this?
 #define LJU6_DITASK_WARN_SLOP_US     50000
 #define LJU6_DITASK_FAIL_SLOP_US     50000
 
@@ -65,6 +65,7 @@ protected:
 	int lastLever1Value;
     int lastCameraState;
     int ledCount;
+    MWTime lastLEDonTimeUS;
     unsigned int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
@@ -94,6 +95,7 @@ protected:
     boost::shared_ptr <Variable> led_seq;
     boost::shared_ptr <Variable> led1_status;
     boost::shared_ptr <Variable> led2_status;
+    boost::shared_ptr <Variable> LED_duration;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -129,6 +131,7 @@ public:
     static const std::string LED_SEQ;
     static const std::string LED1_STATUS;
     static const std::string LED2_STATUS;
+    static const std::string LED_DURATION;
     
     static void describeComponent(ComponentInfo &info);
 	

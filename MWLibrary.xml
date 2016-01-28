@@ -36,6 +36,7 @@ Used for interfacing to a LabJack U6
                       led1_status=""
                       led2_status=""
                       do2led=""
+                      LED_duration=""
                       />
         </code>
     </MWElement>

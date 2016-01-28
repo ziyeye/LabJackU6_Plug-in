@@ -76,6 +76,7 @@ const std::string LabJackU6Device::LED_SEQ("led_seq");
 const std::string LabJackU6Device::DO2LED("do2led");
 const std::string LabJackU6Device::LED1_STATUS("led1_status");
 const std::string LabJackU6Device::LED2_STATUS("led2_status");
+const std::string LabJackU6Device::LED_DURATION("LED_duration");
 
 
 /* Notes to self MH 100422
@@ -124,6 +125,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(LED_SEQ,"1");
     info.addParameter(LED1_STATUS,"false");
     info.addParameter(LED2_STATUS,"false");
+    info.addParameter(LED_DURATION,"0");
     
 }
 
@@ -149,8 +151,10 @@ do2led(parameters[DO2LED]),
 led_seq(parameters[LED_SEQ]),
 led1_status(parameters[LED1_STATUS]),
 led2_status(parameters[LED2_STATUS]),
+LED_duration(parameters[LED_DURATION]),
 lastCameraState(0),
 ledCount(0),
+lastLEDonTimeUS(0),
 deviceIOrunning(false),
 ljHandle(NULL),
 trial(0),
@@ -335,8 +339,10 @@ void LabJackU6Device::laserDO2(bool state) {
 
 
 bool LabJackU6Device::ledDo2(bool &cameraState){
-    // Takes and releases driver lock
     
+    shared_ptr <Clock> clock = Clock::instance();
+    
+    // Takes and releases driver lock
     boost::mutex::scoped_lock lock(ljU6DriverLock);
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
@@ -346,14 +352,15 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
     // calculate led index by counter value and led sequence size
     //int led_index = (counter->getValue().getInteger()) % (led_seq->getValue().getNElements());
     // Cannot rely on counter signal from Camera, so set up our own frame counter
-    int led_index = (ledCount) % (led_seq->getValue().getNElements());
     
-    int led_port = int(led_seq->getValue().getElement(led_index));  // get led # to match labjack port
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED Port is  %d", led_port);
     
     if (cameraState != lastCameraState && cameraState > 0) {
-        ledCount++;
+        
+        int led_index = (ledCount) % (led_seq->getValue().getNElements());
+        
+        int led_port = int(led_seq->getValue().getElement(led_index));  // get led # to match labjack port
         
         lastCameraState = 1;
         
@@ -368,7 +375,8 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
             
         }
         // to get excution time in ms and delay could be <=1ms
-        //long test_time = getTickCount();
+        lastLEDonTimeUS = clock->getCurrentTimeUS();
+        
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
         
                     //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
@@ -382,9 +390,16 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
         
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
         
-    } else if (cameraState != lastCameraState && cameraState == 0) {
+    }
+    if ( ((clock->getCurrentTimeUS() - lastLEDonTimeUS + 600) >= (LED_duration->getValue().getFloat())*1000) && lastCameraState == 1) {
         
         lastCameraState = 0;
+        
+        int led_index = (ledCount) % (led_seq->getValue().getNElements());
+        
+        int led_port = int(led_seq->getValue().getElement(led_index));  // get led # to match labjack port
+
+        ledCount++;
         
         //if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
         //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
@@ -400,7 +415,7 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
         //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
         //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
         //}
-        
+        /*
         if (led1_status->getValue().getBool() == true) {
             led1_status-> setValue(false);
             if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
@@ -414,7 +429,17 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
                 merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
             }
         }
-        
+        */
+        if (led_port != 0) {
+            if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
+                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+            }
+            if (led_port == 1)
+                led1_status-> setValue(false);
+            if (led_port == 2)
+                led2_status-> setValue(false);
+            
+        }
         //led1_status-> setValue(false);
         
         //led2_status-> setValue(false);
