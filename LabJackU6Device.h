@@ -105,6 +105,8 @@ protected:
 	
     std::vector<double> voltage;
     std::vector<double> pmw;
+    std::vector<double> voltage2;
+    std::vector<double> pmw2;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
@@ -161,7 +163,7 @@ public:
     
     
     // two functions to do linear interpolation on LED power
-    int  loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw );
+    int  loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw, std::vector<double> &voltage2, std::vector<double> &pmw2);
     int findNearestNeighbourIndex( double value, const std::vector< double > &x );
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );
     

@@ -39,7 +39,7 @@ static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit m
      | (0x00 << LJU6_LEVER1_FIO)
      | (0x01 << LJU6_LED1_FIO)
      | (0x01 << LJU6_LED2_FIO)),
-        0xff,
+    0xff,
     (  (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_LEVER1SOLENOID_CIO - LJU6_CIO_OFFSET))
      | (0x01 << (LJU6_STROBE_CIO - LJU6_CIO_OFFSET))
@@ -211,7 +211,7 @@ bool LabJackU6Device::pollAllDI() {
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "levers: %d %d", lever1Value, lever2Value);
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Camera State: %d:", cameraState);
-        
+    
     if (readLeverDI(&lever1Value, &cameraState, &cameraState2) != true) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "LJU6: error in readLeverDI()");
     }
@@ -380,13 +380,13 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
         
-                    //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-            //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            //}
+        //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
+        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+        //}
         
-                    //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-            //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            //}
+        //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
+        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+        //}
         
         
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
@@ -399,7 +399,7 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         int led_index = (ledCount) % (led_seq->getValue().getNElements());
         
         int led_port = int(led_seq->getValue().getElement(led_index));  // get led # to match labjack port
-
+        
         ledCount++;
         
         //if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
@@ -417,20 +417,20 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
         //}
         /*
-        if (led1_status->getValue().getBool() == true) {
-            led1_status-> setValue(false);
-            if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED1_FIO);
-            }
-        }
-        
-        if (led2_status->getValue().getBool() == true) {
-            led2_status-> setValue(false);
-            if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
-            }
-        }
-        */
+         if (led1_status->getValue().getBool() == true) {
+         led1_status-> setValue(false);
+         if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
+         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED1_FIO);
+         }
+         }
+         
+         if (led2_status->getValue().getBool() == true) {
+         led2_status-> setValue(false);
+         if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
+         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
+         }
+         }
+         */
         if (led_port != 0) {
             if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
                 merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
@@ -708,14 +708,17 @@ bool LabJackU6Device::startDeviceIO(){
         return false;
     }
     
-    voltage.clear();                       // clear voltage vector
-    pmw.clear();                           // clear pmw vector
-    
-    if (loadLEDTable(voltage, pmw) != 0) { // Load calibration table into array
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "Error loading Calibration table");
-        return false;
+    if (trial == 0) {
+        voltage.clear();                       // clear voltage vector
+        voltage2.clear();
+        pmw.clear();                           // clear pmw vector
+        pmw2.clear();
+        
+        if (loadLEDTable(voltage, pmw, voltage2, pmw2) != 0) { // Load calibration table into array
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Error loading Calibration table");
+            return false;
+        }
     }
-
     
     //debug read in vector
     //mprintf("voltage[0] is: %g", voltage[0]);
@@ -780,10 +783,10 @@ bool LabJackU6Device::stopDeviceIO(){
     
     if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
-
+    
     this->led1_status->setValue(false);
     this->led2_status->setValue(false);
-
+    
     return true;
 }
 
@@ -816,7 +819,7 @@ void LabJackU6Device::variableSetup() {
     //shared_ptr<Variable> doLED2 = this->do2led;
     //shared_ptr<VariableNotification> notif3b(new LabJackU6DeviceLED2Notification(weak_self_ref));
     //doLED2->addNotification(notif3b);
-
+    
     // strobedDigitalWord
     shared_ptr<Variable> doSDW = this->strobedDigitalWord;
     shared_ptr<VariableNotification> notif4(new LabJackU6DeviceSDWNotification(weak_self_ref));
@@ -922,20 +925,20 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         sendDataBuff[7] = 55;       //IOType is Counter1
         sendDataBuff[8] = 1;        //  - Reset counter
         /*
-        sendDataBuff[5] = 46;       //IOType is Timer2
-        sendDataBuff[6] = 1;        //  - Don't reset timer
-        sendDataBuff[7] = 0;        //  - Value LSB (ignored)
-        sendDataBuff[8] = 0;        //  - Value MSB (ignored)
-        
-        sendDataBuff[9] = 48;       //IOType is Timer3
-        sendDataBuff[10] = 1;        //  - Don't reset timer
-        sendDataBuff[11] = 0;        //  - Value LSB (ignored)
-        sendDataBuff[12] = 0;        //  - Value MSB (ignored)
-        
-        sendDataBuff[13] = 54;       //IOType is Counter0
-        sendDataBuff[14] = 1;        //  - Reset counter
-        sendDataBuff[15] = 55;       //IOType is Counter1
-        sendDataBuff[16] = 1;        //  - Reset counter
+         sendDataBuff[5] = 46;       //IOType is Timer2
+         sendDataBuff[6] = 1;        //  - Don't reset timer
+         sendDataBuff[7] = 0;        //  - Value LSB (ignored)
+         sendDataBuff[8] = 0;        //  - Value MSB (ignored)
+         
+         sendDataBuff[9] = 48;       //IOType is Timer3
+         sendDataBuff[10] = 1;        //  - Don't reset timer
+         sendDataBuff[11] = 0;        //  - Value LSB (ignored)
+         sendDataBuff[12] = 0;        //  - Value MSB (ignored)
+         
+         sendDataBuff[13] = 54;       //IOType is Counter0
+         sendDataBuff[14] = 1;        //  - Reset counter
+         sendDataBuff[15] = 55;       //IOType is Counter1
+         sendDataBuff[16] = 1;        //  - Reset counter
          */
         
     }
@@ -949,23 +952,23 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         sendDataBuff[6] = 0;        //  - Reset counter
         sendDataBuff[7] = 55;       //IOType is Counter1
         sendDataBuff[8] = 0;        //  - Reset counter
-
+        
         /*
-        sendDataBuff[5] = 46;       //IOType is Timer2
-        sendDataBuff[6] = 0;        //  - Don't reset timer
-        sendDataBuff[7] = 0;        //  - Value LSB (ignored)
-        sendDataBuff[8] = 0;        //  - Value MSB (ignored)
-        
-        sendDataBuff[9] = 48;       //IOType is Timer3
-        sendDataBuff[10] = 0;        //  - Don't reset timer
-        sendDataBuff[11] = 0;        //  - Value LSB (ignored)
-        sendDataBuff[12] = 0;        //  - Value MSB (ignored)
-        
-        sendDataBuff[13] = 54;       //IOType is Counter0
-        sendDataBuff[14] = 0;        //  - Don't reset counter
-        sendDataBuff[15] = 55;       //IOType is Counter1
-        sendDataBuff[16] = 0;        //  - Don't reset counter
-        */
+         sendDataBuff[5] = 46;       //IOType is Timer2
+         sendDataBuff[6] = 0;        //  - Don't reset timer
+         sendDataBuff[7] = 0;        //  - Value LSB (ignored)
+         sendDataBuff[8] = 0;        //  - Value MSB (ignored)
+         
+         sendDataBuff[9] = 48;       //IOType is Timer3
+         sendDataBuff[10] = 0;        //  - Don't reset timer
+         sendDataBuff[11] = 0;        //  - Value LSB (ignored)
+         sendDataBuff[12] = 0;        //  - Value MSB (ignored)
+         
+         sendDataBuff[13] = 54;       //IOType is Counter0
+         sendDataBuff[14] = 0;        //  - Don't reset counter
+         sendDataBuff[15] = 55;       //IOType is Counter1
+         sendDataBuff[16] = 0;        //  - Don't reset counter
+         */
     }
     uint8 Errorcode, ErrorFrame;
     
@@ -1045,14 +1048,14 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     }
     
     /*
-    if (counter3->getValue().getInteger() != counterValue[2]) {
-        counter3->setValue(long(counterValue[2]));
-    }
-    
-    if (counter4->getValue().getInteger() != counterValue[3]) {
-        counter4->setValue(long(counterValue[3]));
-    }
-    */
+     if (counter3->getValue().getInteger() != counterValue[2]) {
+     counter3->setValue(long(counterValue[2]));
+     }
+     
+     if (counter4->getValue().getInteger() != counterValue[3]) {
+     counter4->setValue(long(counterValue[3]));
+     }
+     */
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "counter value: %lld", counter->getValue().getInteger());
     
     return 0;
@@ -1230,38 +1233,85 @@ vector<double> LabJackU6Device::interp1( const std::vector< double > &x, const s
     return y_new;
 }
 
-int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw) {
+int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw, std::vector<double> &voltage2, std::vector<double> &pmw2) {
     char const *inname;
+    char const *inname2;
     //FILE *infile;
     //char hostname[1024];
     
     //gethostname(hostname, 1024);
-    
-    
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
-        inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else {
-        inname = "/Users/hullglick/Documents/Calibration_Table/laser.txt";
-    }
-    mprintf("Calibration file name is: %s\n",inname);
-    
-    std::ifstream ifs(inname);
-    
-    std::string line;
-    
-    while(std::getline(ifs, line)) // read one line from ifs
-    {
-        std::istringstream iss(line); // access line as a stream
+    if (strcmp(optic_device->getValue().getString(), "led")==0 || strcmp(optic_device->getValue().getString(), "laser")==0 ) {
         
-        // we only need the first two columns
-        double column1;
-        double column2;
+        if (strcmp(optic_device->getValue().getString(), "led")==0) {
+            inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
+        } else {
+            inname = "/Users/hullglick/Documents/Calibration_Table/laser.txt";
+        }
+        mprintf("Calibration file name is: %s\n",inname);
         
-        iss >> column1 >> column2; // read in column 1 & 2
+        std::ifstream ifs(inname);
         
-        voltage.push_back(column1);
-        pmw.push_back(column2);
+        std::string line;
         
+        while(std::getline(ifs, line)) // read one line from ifs
+        {
+            std::istringstream iss(line); // access line as a stream
+            
+            // we only need the first two columns
+            double column1;
+            double column2;
+            
+            iss >> column1 >> column2; // read in column 1 & 2
+            
+            voltage.push_back(column1);
+            pmw.push_back(column2);
+            
+        }
+    } else if (strcmp(optic_device->getValue().getString(), "Altled")==0 ) {
+        inname = "/Users/hullglick/Documents/Calibration_Table/Blueled.txt";
+        
+        mprintf("Calibration file name is: %s\n",inname);
+        
+        std::ifstream ifs(inname);
+        
+        std::string line;
+        
+        while(std::getline(ifs, line)) // read one line from ifs
+        {
+            std::istringstream iss(line); // access line as a stream
+            
+            // we only need the first two columns
+            double column1;
+            double column2;
+            
+            iss >> column1 >> column2; // read in column 1 & 2
+            
+            voltage.push_back(column1);
+            pmw.push_back(column2);
+        }
+        
+        inname2 = "/Users/hullglick/Documents/Calibration_Table/Greenled.txt";
+        
+        mprintf("Calibration file name is: %s\n",inname);
+        
+        std::ifstream ifs2(inname2);
+        
+        std::string line2;
+        
+        while(std::getline(ifs2, line2)) // read one line from ifs
+        {
+            std::istringstream iss2(line2); // access line as a stream
+            
+            // we only need the first two columns
+            double column1_2;
+            double column2_2;
+            
+            iss2 >> column1_2 >> column2_2; // read in column 1 & 2
+            
+            voltage2.push_back(column1_2);
+            pmw2.push_back(column2_2);
+        }
+
     }
     
     return 0;
