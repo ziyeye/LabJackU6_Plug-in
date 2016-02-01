@@ -48,7 +48,8 @@
 #define LJU6_QTRIGGER_CIO       18
 #define LJU6_STROBE_CIO         19 // not using it now
 
-#define LJU6_LASERPOWER_DAC     0 // DAC0 as output
+#define LJU6_LASERPOWER_DAC0     0 // DAC0 as output
+#define LJU6_LASERPOWER_DAC1     1
 
 BEGIN_NAMESPACE_MW
 
@@ -93,8 +94,8 @@ protected:
     boost::shared_ptr <Variable> optic_device;
     boost::shared_ptr <Variable> do2led;
     boost::shared_ptr <Variable> led_seq;
-    boost::shared_ptr <Variable> led1_status;
-    boost::shared_ptr <Variable> led2_status;
+    boost::shared_ptr <Variable> led1_power;
+    boost::shared_ptr <Variable> led2_power;
     boost::shared_ptr <Variable> LED_duration;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
@@ -111,7 +112,7 @@ protected:
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
 	bool ljU6WriteDO(HANDLE Handle, long Channel, long State);
-    bool ljU6WriteLaser(HANDLE Handle, double laserPower);
+    bool ljU6WriteLaser(HANDLE Handle, double laserPower, int laserPort);
 	bool ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord);
 	long ljU6ReadPorts(HANDLE Handle, unsigned int *fioState, unsigned int *eioState, unsigned int *cioState);
     
@@ -131,8 +132,8 @@ public:
     static const std::string OPTIC_DEVICE;
     static const std::string DO2LED;
     static const std::string LED_SEQ;
-    static const std::string LED1_STATUS;
-    static const std::string LED2_STATUS;
+    static const std::string LED1_POWER;
+    static const std::string LED2_POWER;
     static const std::string LED_DURATION;
     
     static void describeComponent(ComponentInfo &info);
