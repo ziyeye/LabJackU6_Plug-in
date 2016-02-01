@@ -207,11 +207,12 @@ bool LabJackU6Device::pollAllDI() {
     
     bool lever1Value;
     bool cameraState;
+    bool cameraState2;
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "levers: %d %d", lever1Value, lever2Value);
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Camera State: %d:", cameraState);
         
-    if (readLeverDI(&lever1Value, &cameraState) != true) {
+    if (readLeverDI(&lever1Value, &cameraState, &cameraState2) != true) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "LJU6: error in readLeverDI()");
     }
     
@@ -226,7 +227,7 @@ bool LabJackU6Device::pollAllDI() {
     
     // control 2 led if neeeded
     if(do2led->getValue().getBool() == true ) {       // could have created a separated schedule node
-        ledDo2(cameraState);            // but since we update all ports in pollAllDI, we might just
+        ledDo2(cameraState, cameraState2);            // but since we update all ports in pollAllDI, we might just
     }                               // call do2led here
     
     return true;
@@ -338,7 +339,7 @@ void LabJackU6Device::laserDO2(bool state) {
 }
 
 
-bool LabJackU6Device::ledDo2(bool &cameraState){
+bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
     
     shared_ptr <Clock> clock = Clock::instance();
     
@@ -356,7 +357,7 @@ bool LabJackU6Device::ledDo2(bool &cameraState){
     
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED Port is  %d", led_port);
     
-    if (cameraState != lastCameraState && cameraState > 0) {
+    if ( (cameraState != lastCameraState && cameraState > 0 && ledCount==0) || (cameraState != lastCameraState && cameraState > 0 && cameraState2 > 0 ) ) {
         
         int led_index = (ledCount) % (led_seq->getValue().getNElements());
         
@@ -463,7 +464,7 @@ void LabJackU6Device::strobedDigitalWordDO(unsigned int digWord) {
 }
 
 
-bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState)
+bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState, bool *cameraState2)
 // Takes the driver lock and releases it
 {
     shared_ptr <Clock> clock = Clock::instance();
@@ -521,6 +522,8 @@ bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState)
     
     // if camera is on
     *cameraState = (cioState >> (LJU6_QTRIGGER_CIO - LJU6_CIO_OFFSET) ) & 0x01;
+    
+    *cameraState2 = (fioState >> 6) & 0x01;
     
     // to reset "trial" counts (how many times functions are called)
     if (trial > 10000) {

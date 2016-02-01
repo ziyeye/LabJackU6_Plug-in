@@ -30,9 +30,9 @@
 #undef VERBOSE_IO_DEVICE
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
-#define LJU6_DITASK_UPDATE_PERIOD_US 500    // "sampling time" in MWorks, not going faster than this?
-#define LJU6_DITASK_WARN_SLOP_US     50000
-#define LJU6_DITASK_FAIL_SLOP_US     50000
+#define LJU6_DITASK_UPDATE_PERIOD_US 400    // "sampling time" in MWorks, not going faster than this?
+#define LJU6_DITASK_WARN_SLOP_US     5000000
+#define LJU6_DITASK_FAIL_SLOP_US     500000000
 
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
@@ -150,13 +150,13 @@ public:
 	void variableSetup();
 	bool setupU6PortsAndRestartIfDead();
     
-	bool readLeverDI(bool *outLever1, bool *cameraState);
+	bool readLeverDI(bool *outLever1, bool *cameraState, bool *cameraState2);
 	void pulseDOHigh(int pulseLengthUS);
 	void pulseDOLow();
 	void leverSolenoidDO(bool state);
 	void laserDO(double laserPower);  // LED modulation
     void laserDO2(bool state);   //optic switch
-    bool ledDo2(bool &cameraState);     //control two leds for wide field
+    bool ledDo2(bool &cameraState, bool &cameraState2);     //control two leds for wide field
 	void strobedDigitalWordDO(unsigned int digWord);
     
     
