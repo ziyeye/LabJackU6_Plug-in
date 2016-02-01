@@ -33,8 +33,8 @@ Used for interfacing to a LabJack U6
                       quadrature=""
                       optic_device=""
                       led_seq=""
-                      led1_power=""
-                      led2_power=""
+                      led1_status=""
+                      led2_status=""
                       do2led=""
                       LED_duration=""
                       />

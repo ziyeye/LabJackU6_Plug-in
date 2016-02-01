@@ -74,8 +74,8 @@ const std::string LabJackU6Device::QUADRATURE("quadrature");
 const std::string LabJackU6Device::OPTIC_DEVICE("optic_device");
 const std::string LabJackU6Device::LED_SEQ("led_seq");
 const std::string LabJackU6Device::DO2LED("do2led");
-const std::string LabJackU6Device::LED1_POWER("led1_power");
-const std::string LabJackU6Device::LED2_POWER("led2_power");
+const std::string LabJackU6Device::LED1_STATUS("led1_status");
+const std::string LabJackU6Device::LED2_STATUS("led2_status");
 const std::string LabJackU6Device::LED_DURATION("LED_duration");
 
 
@@ -123,8 +123,8 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(OPTIC_DEVICE, "led");
     info.addParameter(DO2LED,"false");
     info.addParameter(LED_SEQ,"1");
-    info.addParameter(LED1_POWER,"0");
-    info.addParameter(LED2_POWER,"0");
+    info.addParameter(LED1_STATUS,"false");
+    info.addParameter(LED2_STATUS,"false");
     info.addParameter(LED_DURATION,"0");
     
 }
@@ -149,8 +149,8 @@ quadrature(parameters[QUADRATURE]),
 optic_device(parameters[OPTIC_DEVICE]),
 do2led(parameters[DO2LED]),
 led_seq(parameters[LED_SEQ]),
-led1_power(parameters[LED1_POWER]),
-led2_power(parameters[LED2_POWER]),
+led1_status(parameters[LED1_STATUS]),
+led2_status(parameters[LED2_STATUS]),
 LED_duration(parameters[LED_DURATION]),
 lastCameraState(0),
 ledCount(0),
@@ -323,7 +323,7 @@ void LabJackU6Device::laserDO(double Power) {
     
     boost::mutex::scoped_lock lock(ljU6DriverLock);
     
-    LabJackU6Device::ljU6WriteLaser(ljHandle, Power, LJU6_LASERPOWER_DAC0);
+    LabJackU6Device::ljU6WriteLaser(ljHandle, Power);
     
 }
 
@@ -366,9 +366,13 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         lastCameraState = 1;
         
         if (led_port != 0) {
-            if (ljU6WriteLaser(ljHandle, led1_power->getValue().getFloat(), led_port-1) != true) {
+            if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
                 merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
             }
+            if (led_port == 1)
+                led1_status-> setValue(true);
+            if (led_port == 2)
+                led2_status-> setValue(true);
             
         }
         // to get excution time in ms and delay could be <=1ms
@@ -428,9 +432,13 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
          }
          */
         if (led_port != 0) {
-            if (ljU6WriteLaser(ljHandle, 0, led_port-1) != true) {
+            if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
                 merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
             }
+            if (led_port == 1)
+                led1_status-> setValue(false);
+            if (led_port == 2)
+                led2_status-> setValue(false);
             
         }
         //led1_status-> setValue(false);
@@ -593,14 +601,9 @@ bool LabJackU6Device::initialize() {
     this->pulseOn->setValue(Datum(M_INTEGER, 0));
     this->pulseDuration->setValue(Datum(M_INTEGER, 0));
     
-    if (!ljU6WriteLaser(ljHandle, 0, LJU6_LASERPOWER_DAC0) == 1)
+    if (!ljU6WriteLaser(ljHandle, 0) == 1)
         return false; // merror is done in ljU6WriteDO
     this->tTrialLaserPowerMw->setValue(Datum(M_FLOAT, 0));
-    this->led1_power->setValue(Datum(M_FLOAT,0));
-    
-    if (!ljU6WriteLaser(ljHandle, 0, LJU6_LASERPOWER_DAC1) == 1)
-        return false; // merror is done in ljU6WriteDO
-    this->led2_power->setValue(Datum(M_FLOAT,0));
     
     if (!ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
@@ -610,13 +613,13 @@ bool LabJackU6Device::initialize() {
         return false; // merror is done in ljU6WriteDO
     this->strobedDigitalWord->setValue(Datum(M_INTEGER, 0));
     
-    //if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
-    //    return false; // merror is done in ljU6WriteDO
-    //this->led1_power->setValue(Datum(M_FLOAT,0));
+    if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+    this->led1_status->setValue(Datum(M_BOOLEAN,0));
     
-    //if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
-    //    return false; // merror is done in ljU6WriteDO
-    //this->led2_power->setValue(Datum(M_FLOAT,0));
+    if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
+        return false; // merror is done in ljU6WriteDO
+    this->led2_status->setValue(Datum(M_BOOLEAN,0));
     
     //mprintf("Initialize()\n");
     return true;
@@ -775,14 +778,14 @@ bool LabJackU6Device::stopDeviceIO(){
     laserDO(0);
     laserDO2(false);
     
-    if (!ljU6WriteLaser(ljHandle, 0, LJU6_LASERPOWER_DAC0) == 1)
+    if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
-    this->tTrialLaserPowerMw->setValue(Datum(M_FLOAT, 0));
-    this->led1_power->setValue(Datum(M_FLOAT,0));
     
-    if (!ljU6WriteLaser(ljHandle, 0, LJU6_LASERPOWER_DAC1) == 1)
+    if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
-    this->led2_power->setValue(Datum(M_FLOAT,0));
+    
+    this->led1_status->setValue(false);
+    this->led2_status->setValue(false);
     
     return true;
 }
@@ -1136,7 +1139,7 @@ bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
     return true;
 }
 
-bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower, int laserPort) {
+bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower) {
     
     //int x_tam = TABLE_SIZE;
     //double xx[] = {laserPower};
@@ -1156,7 +1159,7 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower, int laser
     }
     
     if (laserPower == 0) {
-        if( eDAC(Handle, &CalibInfo, laserPort, laserPower, 0, 0, 0) !=0 ) {
+        if( eDAC(Handle, &CalibInfo, LJU6_LASERPOWER_DAC, laserPower, 0, 0, 0) !=0 ) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: eDAC error");
             return false;
         } else {
@@ -1167,7 +1170,7 @@ bool LabJackU6Device::ljU6WriteLaser(HANDLE Handle, double laserPower, int laser
         
         //mprintf("Laser Voltage: %lg\n", laserVol[0]);
         
-        if( eDAC(Handle, &CalibInfo, laserPort, laserVol[0], 0, 0, 0) !=0 ) {
+        if( eDAC(Handle, &CalibInfo, LJU6_LASERPOWER_DAC, laserVol[0], 0, 0, 0) !=0 ) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: eDAC error");
             return false;
         } else {
