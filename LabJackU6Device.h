@@ -24,6 +24,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <libusb-1.0/libusb.h>
 #include "u6.h"
 #include "labjackusb.h"
 
@@ -31,7 +32,7 @@
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
 #define LJU6_DITASK_UPDATE_PERIOD_US 400    // "sampling time" in MWorks, not going faster than this?
-#define LJU6_DITASK_WARN_SLOP_US     5000000
+#define LJU6_DITASK_WARN_SLOP_US     500000000
 #define LJU6_DITASK_FAIL_SLOP_US     500000000
 
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
