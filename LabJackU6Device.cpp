@@ -650,11 +650,16 @@ bool LabJackU6Device::setupU6PortsAndRestartIfDead() {
             return false;  // no cleanup needed
         }
         
-        // Redo port setup
-        if (!ljU6ConfigPorts(ljHandle)) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "Error: configuring U6 after restart, U6 will not work now.  Check for patched version of libusb with reenumerate call.\n");
-            return false;  // no cleanup needed
+        // Redo port setup x times until it is ready
+        while (!ljU6ConfigPorts(ljHandle)) {
+            mprintf("Reconfigure Labjack......");
         }
+        
+        // Redo port setup
+        //if (!ljU6ConfigPorts(ljHandle)) {
+        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "Error: configuring U6 after restart, U6 will not work now.  Check for patched version of libusb with reenumerate call.\n");
+        //    return false;  // no cleanup needed
+        //}
     }
     //mprintf("setupU6PortsAndRestartIfDead()\n");
     return true;
