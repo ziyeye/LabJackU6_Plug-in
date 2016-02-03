@@ -1010,9 +1010,9 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     //quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     // Update quadrature variable (only if quadrature value has changed)
-    if (quadrature->getValue().getInteger() != quadratureValue) {
-        quadrature->setValue(long(quadratureValue));
-    }
+    //if (quadrature->getValue().getInteger() != quadratureValue) {
+    quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
+    //}
     
     // Unpack counter value
     uint32 counterValue[2];
