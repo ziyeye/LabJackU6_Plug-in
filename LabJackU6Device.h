@@ -63,10 +63,14 @@ protected:
 	bool						connected;
     
 	MWTime						lastLever1TransitionTimeUS;
+    MWTime                      QTimeUS;
+    MWTime                      lastLEDonTimeUS;
 	int lastLever1Value;
     int lastCameraState;
     int ledCount;
-    MWTime lastLEDonTimeUS;
+    long lastBinQuadratureValue;
+    
+    
     unsigned int trial;
     
 	boost::shared_ptr <Scheduler> scheduler;
@@ -97,6 +101,12 @@ protected:
     boost::shared_ptr <Variable> led1_status;
     boost::shared_ptr <Variable> led2_status;
     boost::shared_ptr <Variable> LED_duration;
+    boost::shared_ptr <Variable> Qbin_size;
+    boost::shared_ptr <Variable> Qbin_timeUS;
+    boost::shared_ptr <Variable> doCB;
+    boost::shared_ptr <Variable> start_CB;
+    boost::shared_ptr <Variable> running_criteria;
+    boost::shared_ptr <Variable> Qpulse_criteria;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -106,6 +116,8 @@ protected:
 	
     std::vector<double> voltage;
     std::vector<double> pmw;
+    
+    std::vector<int> QBinValue;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
@@ -133,6 +145,12 @@ public:
     static const std::string LED1_STATUS;
     static const std::string LED2_STATUS;
     static const std::string LED_DURATION;
+    static const std::string QBIN_SIZE;
+    static const std::string QBIN_TIMEUS;
+    static const std::string DOCB;
+    static const std::string START_CB;
+    static const std::string RUNNING_CRITERIA;
+    static const std::string QPULSE_CRITERIA;
     
     static void describeComponent(ComponentInfo &info);
 	
@@ -165,6 +183,8 @@ public:
     int  loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw );
     int findNearestNeighbourIndex( double value, const std::vector< double > &x );
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );
+    
+    void runningCriteria();
     
 	virtual void dispense(Datum data){
 		if(getActive()){

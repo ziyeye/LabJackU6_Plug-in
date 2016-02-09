@@ -37,6 +37,13 @@ Used for interfacing to a LabJack U6
                       led2_status=""
                       do2led=""
                       LED_duration=""
+                      Qbin_timeUS=""
+                      running_criteria=""
+                      Qbin_size=""
+                      start_CB=""
+                      Qpulse_criteria=""
+                      doCB=""
+                      running_status=""
                       />
         </code>
     </MWElement>

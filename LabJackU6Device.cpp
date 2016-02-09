@@ -77,6 +77,12 @@ const std::string LabJackU6Device::DO2LED("do2led");
 const std::string LabJackU6Device::LED1_STATUS("led1_status");
 const std::string LabJackU6Device::LED2_STATUS("led2_status");
 const std::string LabJackU6Device::LED_DURATION("LED_duration");
+const std::string LabJackU6Device::QBIN_SIZE("Qbin_size");
+const std::string LabJackU6Device::QBIN_TIMEUS("Qbin_timeUS");
+const std::string LabJackU6Device::DOCB("doCB");
+const std::string LabJackU6Device::START_CB("start_CB");
+const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
+const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
 
 
 /* Notes to self MH 100422
@@ -126,6 +132,12 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(LED1_STATUS,"false");
     info.addParameter(LED2_STATUS,"false");
     info.addParameter(LED_DURATION,"0");
+    info.addParameter(QBIN_SIZE,"0");
+    info.addParameter(QBIN_TIMEUS,"0");
+    info.addParameter(DOCB,"false");
+    info.addParameter(START_CB,"false");
+    info.addParameter(RUNNING_CRITERIA,"0");
+    info.addParameter(QPULSE_CRITERIA,"0");
     
 }
 
@@ -152,12 +164,20 @@ led_seq(parameters[LED_SEQ]),
 led1_status(parameters[LED1_STATUS]),
 led2_status(parameters[LED2_STATUS]),
 LED_duration(parameters[LED_DURATION]),
+Qbin_size(parameters[QBIN_SIZE]),
+Qbin_timeUS(parameters[QBIN_TIMEUS]),
+doCB(parameters[DOCB]),
+start_CB(parameters[START_CB]),
+running_criteria(parameters[RUNNING_CRITERIA]),
+Qpulse_criteria(parameters[QPULSE_CRITERIA]),
 lastCameraState(0),
 ledCount(0),
 lastLEDonTimeUS(0),
+QTimeUS(0),
 deviceIOrunning(false),
 ljHandle(NULL),
 trial(0),
+lastBinQuadratureValue(0),
 lastLever1Value(-1),  // -1 means always report first value
 lastLever1TransitionTimeUS(0)
 {
@@ -713,7 +733,7 @@ bool LabJackU6Device::startDeviceIO(){
         return false;
     }
     
-    if (trial == 0) {
+    
         voltage.clear();                       // clear voltage vector
         pmw.clear();                           // clear pmw vector
     
@@ -721,7 +741,8 @@ bool LabJackU6Device::startDeviceIO(){
             merror(M_IODEVICE_MESSAGE_DOMAIN, "Error loading Calibration table");
             return false;
         }
-    }
+    
+    QBinValue.clear();
     
     //debug read in vector
     //mprintf("voltage[0] is: %g", voltage[0]);
@@ -1014,6 +1035,9 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
     //}
     
+    if (doCB->getValue().getBool()==true)
+        runningCriteria();
+    
     // Unpack counter value
     uint32 counterValue[2];
     
@@ -1271,6 +1295,38 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     }
     
     return 0;
+}
+
+void LabJackU6Device::runningCriteria() {
+    // get the clock
+    shared_ptr <Clock> clock = Clock::instance();
+    
+    // if current time is longer than required time
+    if (clock->getCurrentTimeUS() -  QTimeUS >= Qbin_timeUS->getValue().getInteger()) {
+        
+        QTimeUS = clock->getCurrentTimeUS();
+        
+        // if the quadrature reading has exceeded the running criteria
+        if ( (quadrature->getValue().getInteger() - lastBinQuadratureValue) >= Qpulse_criteria->getValue().getInteger()) {
+            lastBinQuadratureValue = quadrature->getValue().getInteger();
+            QBinValue.push_back(1);
+        } else {
+            QBinValue.push_back(0);
+        }
+        
+        if (QBinValue.size() > Qbin_size->getValue().getInteger() )
+            QBinValue.erase(QBinValue.begin());
+
+    }
+    
+    int Qbin_sum = 0;
+    for (int n:QBinValue) {
+        Qbin_sum += n;
+        mprintf("The running status is %d", n);
+    }
+    
+    if (Qbin_sum >= running_criteria->getValue().getInteger())
+        start_CB->setValue(true);
 }
 
 END_NAMESPACE_MW
