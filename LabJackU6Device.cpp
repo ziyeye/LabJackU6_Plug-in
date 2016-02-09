@@ -1316,17 +1316,20 @@ void LabJackU6Device::runningCriteria() {
         
         if (QBinValue.size() > Qbin_size->getValue().getInteger() )
             QBinValue.erase(QBinValue.begin());
+        
+        int Qbin_sum = 0;
+        for (int n:QBinValue) {
+            Qbin_sum += n;
+            //mprintf("The running status is %d", n);
+        }
+        
+        if (Qbin_sum >= running_criteria->getValue().getInteger()) {
+            start_CB->setValue(true);
+            mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
+        }
 
     }
     
-    int Qbin_sum = 0;
-    for (int n:QBinValue) {
-        Qbin_sum += n;
-        mprintf("The running status is %d", n);
-    }
-    
-    if (Qbin_sum >= running_criteria->getValue().getInteger())
-        start_CB->setValue(true);
 }
 
 END_NAMESPACE_MW
