@@ -743,6 +743,7 @@ bool LabJackU6Device::startDeviceIO(){
         }
     
     QBinValue.clear();
+    lastBinQuadratureValue=0;
     
     //debug read in vector
     //mprintf("voltage[0] is: %g", voltage[0]);
@@ -1278,7 +1279,7 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     std::ifstream ifs(inname);
     
     std::string line;
-    
+
     while(std::getline(ifs, line)) // read one line from ifs
     {
         std::istringstream iss(line); // access line as a stream
@@ -1300,11 +1301,14 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
 void LabJackU6Device::runningCriteria() {
     // get the clock
     shared_ptr <Clock> clock = Clock::instance();
-    
+    int Qbin_sum = 0;
+    int Qindex = 0;
     // if current time is longer than required time
     if (clock->getCurrentTimeUS() -  QTimeUS >= Qbin_timeUS->getValue().getInteger()) {
         
         QTimeUS = clock->getCurrentTimeUS();
+        
+        //mprintf("The bin starts time is %lld.", QTimeUS);
         
         // if the quadrature reading has exceeded the running criteria
         if ( (quadrature->getValue().getInteger() - lastBinQuadratureValue) >= Qpulse_criteria->getValue().getInteger()) {
@@ -1314,18 +1318,18 @@ void LabJackU6Device::runningCriteria() {
             QBinValue.push_back(0);
         }
         
-        if (QBinValue.size() > Qbin_size->getValue().getInteger() )
+        if (QBinValue.size() > Qbin_size->getValue().getInteger()) {
             QBinValue.erase(QBinValue.begin());
-        
-        int Qbin_sum = 0;
-        for (int n:QBinValue) {
-            Qbin_sum += n;
-            //mprintf("The running status is %d", n);
+            for (int n:QBinValue) {
+                Qbin_sum += n;
+                ++Qindex;
+                //mprintf("The running status at bin %d is %d", Qindex, n);
+            }
         }
         
-        if (Qbin_sum >= running_criteria->getValue().getInteger()) {
+        if (Qbin_sum >= running_criteria->getValue().getInteger() || Qbin_sum == 0) {
             start_CB->setValue(true);
-            mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
+            //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
         }
 
     }
