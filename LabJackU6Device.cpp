@@ -1327,7 +1327,7 @@ void LabJackU6Device::runningCriteria() {
             }
         }
         
-        if (Qbin_sum >= running_criteria->getValue().getInteger() || Qbin_sum == 0) {
+        if ((Qbin_sum >= running_criteria->getValue().getInteger()) || (Qbin_sum == 0 && QBinValue.size()==6)) {
             start_CB->setValue(true);
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
         }
