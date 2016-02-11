@@ -1033,11 +1033,16 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     // Update quadrature variable (only if quadrature value has changed)
     //if (quadrature->getValue().getInteger() != quadratureValue) {
-    quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
+    
     //}
     
-    if (doCB->getValue().getBool()==true)
+    if (doCB->getValue().getBool()==true) {
+        quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
         runningCriteria();
+    } else {
+        if (quadrature->getValue().getInteger() != quadratureValue)
+            quadrature->setValue(long(quadratureValue));
+    }
     
     // Unpack counter value
     uint32 counterValue[2];
