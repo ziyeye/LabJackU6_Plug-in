@@ -852,11 +852,7 @@ void LabJackU6Device::variableSetup() {
     shared_ptr<VariableNotification> notif4(new LabJackU6DeviceSDWNotification(weak_self_ref));
     doSDW->addNotification(notif4);
     
-    // send Puff Stim
-    shared_ptr<Variable> doST = this->start_CB;
-    shared_ptr<VariableNotification> notif5(new LabJackU6DeviceSTNotification(weak_self_ref));
-    doST->addNotification(notif5);
-
+    
     connected = true;
 }
 
@@ -1013,6 +1009,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     *eioState = recDataBuff[1];
     *cioState = recDataBuff[2];
     
+    shared_ptr <Clock> clock = Clock::instance();
+    
     // debug
     //mprintf("FIO 0x%x EIO 0x%x CIO 0x%x", *fioState, *eioState, *cioState);
     // debug timer and counter
@@ -1047,6 +1045,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
         if (checkrun->getValue().getBool())
             runningCriteria(checkrun->getValue().getBool());
+        else
+            QTimeUS = clock->getCurrentTimeUS();
     } else {
         if (quadrature->getValue().getInteger() != quadratureValue)
             quadrature->setValue(long(quadratureValue));
@@ -1343,7 +1343,8 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
         if ((Qbin_sum >= running_criteria->getValue().getInteger()) || (Qbin_sum == 0 && QBinValue.size()==6)) {
             start_CB->setValue(true);
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
-        }
+        } else
+            start_CB->setValue(false);
 
     }
     

@@ -221,12 +221,6 @@ public:
         }
     }
     
-    virtual void setPuffStim(Datum data) {
-        if (getActive()) {
-            bool runState = (bool) data;
-            this->runningCriteria(runState);
-        }
-    }
             
 	virtual void setStrobedDigitalWord(Datum data) {
 		if (getActive()) {
@@ -331,19 +325,6 @@ public:
     }
 };
 
-class LabJackU6DeviceSTNotification : public VariableNotification {
-    
-protected:
-    weak_ptr<LabJackU6Device> daq;
-public:
-    LabJackU6DeviceSTNotification(weak_ptr<LabJackU6Device> _daq){
-        daq = _daq;
-    }
-    virtual void notify(const Datum& data, MWTime timeUS){
-        shared_ptr<LabJackU6Device> shared_daq(daq);
-        shared_daq->setPuffStim(data);
-    }
-};
 
 
 END_NAMESPACE_MW
