@@ -1045,8 +1045,11 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
         if (checkrun->getValue().getBool())
             runningCriteria(checkrun->getValue().getBool());
-        else
+        else {
             QTimeUS = clock->getCurrentTimeUS();
+            QBinValue.clear();
+            lastBinQuadratureValue = quadrature->getValue().getInteger();
+        }
     } else {
         if (quadrature->getValue().getInteger() != quadratureValue)
             quadrature->setValue(long(quadratureValue));
@@ -1327,21 +1330,31 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
         if ( (quadrature->getValue().getInteger() - lastBinQuadratureValue) >= Qpulse_criteria->getValue().getInteger()) {
             lastBinQuadratureValue = quadrature->getValue().getInteger();
             QBinValue.push_back(1);
+            //mprintf("exceeding running criteria");
         } else {
             QBinValue.push_back(0);
+            //mprintf("Not exceeding running criteria");
         }
         
         if (QBinValue.size() > Qbin_size->getValue().getInteger()) {
             QBinValue.erase(QBinValue.begin());
+            //mprintf("test=====");
             for (int n:QBinValue) {
                 Qbin_sum += n;
                 ++Qindex;
-                //mprintf("The running status at bin %d is %d", Qindex, n);
+                mprintf("The running status at bin %d is %d", Qindex, n);
+            }
+        } else {
+            for (int n:QBinValue) {
+                Qbin_sum += n;
+                ++Qindex;
+                mprintf("The running status at bin %d is %d", Qindex, n);
             }
         }
         
         if ((Qbin_sum >= running_criteria->getValue().getInteger()) || (Qbin_sum == 0 && QBinValue.size()==6)) {
             start_CB->setValue(true);
+            //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
         } else
             start_CB->setValue(false);
