@@ -1348,7 +1348,7 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
             for (int n:QBinValue) {
                 Qbin_sum += n;
                 ++Qindex;
-                mprintf("The running status at bin %d is %d", Qindex, n);
+                //mprintf("The running status at bin %d is %d", Qindex, n);
             }
         }
         
