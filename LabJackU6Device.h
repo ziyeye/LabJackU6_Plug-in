@@ -107,6 +107,7 @@ protected:
     boost::shared_ptr <Variable> start_CB;
     boost::shared_ptr <Variable> running_criteria;
     boost::shared_ptr <Variable> Qpulse_criteria;
+    boost::shared_ptr <Variable> checkrun;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -151,6 +152,7 @@ public:
     static const std::string START_CB;
     static const std::string RUNNING_CRITERIA;
     static const std::string QPULSE_CRITERIA;
+    static const std::string CHECKRUN;
     
     static void describeComponent(ComponentInfo &info);
 	
@@ -184,7 +186,7 @@ public:
     int findNearestNeighbourIndex( double value, const std::vector< double > &x );
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );
     
-    void runningCriteria();
+    void runningCriteria(bool checkRunning);
     
 	virtual void dispense(Datum data){
 		if(getActive()){
@@ -219,7 +221,13 @@ public:
         }
     }
     
-
+    virtual void setPuffStim(Datum data) {
+        if (getActive()) {
+            bool runState = (bool) data;
+            this->runningCriteria(runState);
+        }
+    }
+            
 	virtual void setStrobedDigitalWord(Datum data) {
 		if (getActive()) {
 			unsigned int digWord = (int)data;
@@ -320,6 +328,20 @@ public:
     virtual void notify(const Datum& data, MWTime timeUS){
         shared_ptr<LabJackU6Device> shared_daq(daq);
         shared_daq->setStrobedDigitalWord(data);
+    }
+};
+
+class LabJackU6DeviceSTNotification : public VariableNotification {
+    
+protected:
+    weak_ptr<LabJackU6Device> daq;
+public:
+    LabJackU6DeviceSTNotification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->setPuffStim(data);
     }
 };
 

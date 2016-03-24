@@ -44,6 +44,7 @@ Used for interfacing to a LabJack U6
                       Qpulse_criteria=""
                       doCB=""
                       running_status=""
+                      checkrun=""
                       />
         </code>
     </MWElement>

@@ -83,7 +83,7 @@ const std::string LabJackU6Device::DOCB("doCB");
 const std::string LabJackU6Device::START_CB("start_CB");
 const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
 const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
-
+const std::string LabJackU6Device::CHECKRUN("checkrun");
 
 /* Notes to self MH 100422
  Notes 09252015
@@ -138,7 +138,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(START_CB,"false");
     info.addParameter(RUNNING_CRITERIA,"0");
     info.addParameter(QPULSE_CRITERIA,"0");
-    
+    info.addParameter(CHECKRUN,"false");
 }
 
 
@@ -170,6 +170,7 @@ doCB(parameters[DOCB]),
 start_CB(parameters[START_CB]),
 running_criteria(parameters[RUNNING_CRITERIA]),
 Qpulse_criteria(parameters[QPULSE_CRITERIA]),
+checkrun(parameters[CHECKRUN]),
 lastCameraState(0),
 ledCount(0),
 lastLEDonTimeUS(0),
@@ -821,6 +822,7 @@ void LabJackU6Device::variableSetup() {
     //	weak_ptr<LabJackU6Device> weak_self_ref(getSelfPtr<LabJackU6Device>());
     weak_ptr<LabJackU6Device> weak_self_ref(component_shared_from_this<LabJackU6Device>());
     
+    // Reward
     shared_ptr<Variable> doReward = this->pulseOn;
     shared_ptr<VariableNotification> notif(new LabJackU6DeviceOutputNotification(weak_self_ref));
     doReward->addNotification(notif);
@@ -850,6 +852,11 @@ void LabJackU6Device::variableSetup() {
     shared_ptr<VariableNotification> notif4(new LabJackU6DeviceSDWNotification(weak_self_ref));
     doSDW->addNotification(notif4);
     
+    // send Puff Stim
+    shared_ptr<Variable> doST = this->start_CB;
+    shared_ptr<VariableNotification> notif5(new LabJackU6DeviceSTNotification(weak_self_ref));
+    doST->addNotification(notif5);
+
     connected = true;
 }
 
@@ -1038,7 +1045,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     if (doCB->getValue().getBool()==true) {
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
-        runningCriteria();
+        if (checkrun->getValue().getBool())
+            runningCriteria(checkrun->getValue().getBool());
     } else {
         if (quadrature->getValue().getInteger() != quadratureValue)
             quadrature->setValue(long(quadratureValue));
@@ -1303,7 +1311,7 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     return 0;
 }
 
-void LabJackU6Device::runningCriteria() {
+void LabJackU6Device::runningCriteria(bool checkRunning) {
     // get the clock
     shared_ptr <Clock> clock = Clock::instance();
     int Qbin_sum = 0;
