@@ -65,6 +65,7 @@ const std::string LabJackU6Device::LEVER1("lever1");
 const std::string LabJackU6Device::LEVER1_SOLENOID("lever1_solenoid");
 const std::string LabJackU6Device::TRIAL_LASER_POWERMW("trial_laser_powerMw");
 const std::string LabJackU6Device::LASER_TRIGGER("laser_trigger");
+const std::string LabJackU6Device::LASER_DURATION("laser_duration");
 const std::string LabJackU6Device::STROBED_DIGITAL_WORD("strobed_digital_word");
 const std::string LabJackU6Device::COUNTER("counter");
 const std::string LabJackU6Device::COUNTER2("counter2");
@@ -120,6 +121,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(LEVER1_SOLENOID, "false");
     info.addParameter(TRIAL_LASER_POWERMW, "0");
     info.addParameter(LASER_TRIGGER, "false");
+    info.addParameter(LASER_DURATION);
     info.addParameter(STROBED_DIGITAL_WORD, "0");
     info.addParameter(COUNTER, "0");
     info.addParameter(COUNTER2, "0");
@@ -152,6 +154,7 @@ lever1(parameters[LEVER1]),
 lever1Solenoid(parameters[LEVER1_SOLENOID]),
 tTrialLaserPowerMw(parameters[TRIAL_LASER_POWERMW]),
 laserTrigger(parameters[LASER_TRIGGER]),
+laserDuration(parameters[LASER_DURATION]),
 strobedDigitalWord(parameters[STROBED_DIGITAL_WORD]),
 counter(parameters[COUNTER]),
 counter2(parameters[COUNTER2]),
@@ -210,6 +213,16 @@ void *endPulse(const shared_ptr<LabJackU6Device> &gp) {
         mprintf("LabJackU6Device: endPulse callback at %lld us", clock->getCurrentTimeUS());
     }
     gp->pulseDOLow();
+    return(NULL);
+}
+
+void *endLaser(const shared_ptr<LabJackU6Device> &gp) {
+    
+    shared_ptr <Clock> clock = Clock::instance();
+    if (VERBOSE_IO_DEVICE >= 2) {
+        mprintf("LabJackU6Device: endLaser callback at %lld us", clock->getCurrentTimeUS());
+    }
+    gp->laserDOLow();
     return(NULL);
 }
 
@@ -326,6 +339,84 @@ void LabJackU6Device::pulseDOLow() {
     }
     // set juice variable low
     pulseDuration->setValue(Datum((long)0));
+    
+}
+
+// set Laser high
+void LabJackU6Device::laserDOHigh(int laserLengthMS) {
+    shared_ptr <Clock> clock = Clock::instance();
+    // Takes and releases pulseScheduleNodeLock
+    // Takes and releases driver lock
+    
+    // Set the DO high first
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
+    if (ljHandle == NULL) {
+        return;
+    }
+    if (VERBOSE_IO_DEVICE >= 2) {
+        mprintf("LabJackU6Device: setting laser high for %d ms (%lld)", laserLengthMS, clock->getCurrentTimeUS());
+    }
+    MWTime t1 = clock->getCurrentTimeUS();  // to check elapsed time below
+    
+    //double power = tTrialLaserPowerMw->getValue().getFloat();
+    
+    //if (ljU6WriteLaser(ljHandle, power) == false) {
+    //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output high; device likely to not work from here on");
+    //    return;
+    }
+    lock.unlock();      //printf("unlock DOhigh\n"); fflush(stdout);
+    
+    if (clock->getCurrentTimeUS() - t1 > 4000) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN,
+               "LJU6: Writing the DO took longer than 4ms.  Is the device connected to a high-speed hub?  Pulse length is wrong.");
+    }
+    
+    // Schedule endPulse call
+    if (laserLengthMS <= LJU6_EMPIRICAL_DO_LATENCY_MS+1) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "LJU6: requested pulse length %dms too short (<%dms), not doing digital IO",
+               laserLengthMS, LJU6_EMPIRICAL_DO_LATENCY_MS+1);
+    } else {
+        // long enough, do it
+        boost::mutex::scoped_lock pLock(laserScheduleNodeLock);
+        shared_ptr<LabJackU6Device> this_one = shared_from_this();
+        laserScheduleNode = scheduler->scheduleMS(std::string(FILELINE ": ") + getTag(),
+                                                  (laserLengthMS) - LJU6_EMPIRICAL_DO_LATENCY_MS,
+                                                  0,
+                                                  1,
+                                                  boost::bind(endLaser, this_one),
+                                                  M_DEFAULT_IODEVICE_PRIORITY,
+                                                  M_DEFAULT_IODEVICE_WARN_SLOP_US,
+                                                  M_DEFAULT_IODEVICE_FAIL_SLOP_US,
+                                                  M_MISSED_EXECUTION_CATCH_UP);
+        
+        MWTime current = clock->getCurrentTimeUS();
+        if (VERBOSE_IO_DEVICE >= 2) {
+            mprintf("LabJackU6Device:  schedule endPulse callback at %lld us (%lld)", current, clock->getCurrentTimeUS());
+        }
+        highTimeUS = current;
+    }
+    
+}
+
+// set the DO low for Laser
+
+void LabJackU6Device::laserDOLow() {
+    
+    shared_ptr <Clock> clock = Clock::instance();
+    MWTime current = clock->getCurrentTimeUS();
+    
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
+    if (ljHandle == NULL) {
+        return;
+    }
+    if (VERBOSE_IO_DEVICE >= 2) {
+        mprintf("LabJackU6Device: pulseDOLow at %lld us (pulse %lld us long)", current, current - highTimeUS);
+    }
+    if (ljU6WriteLaser(ljHandle, 0) == false) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
+    }
+    // set juice variable low
+    laserDuration->setValue(Datum((long)0));
     
 }
 
@@ -852,6 +943,10 @@ void LabJackU6Device::variableSetup() {
     shared_ptr<VariableNotification> notif4(new LabJackU6DeviceSDWNotification(weak_self_ref));
     doSDW->addNotification(notif4);
     
+    //laser duration
+    shared_ptr<Variable> doLaserDuration = this->laserDuration;
+    shared_ptr<VariableNotification> notif5(new LabJackU6DeviceLaserDurNotification(weak_self_ref));
+    doLaserDuration->addNotification(notif5);
     
     connected = true;
 }
@@ -1287,8 +1382,10 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     
     if (strcmp(optic_device->getValue().getString(), "led")==0) {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else {
-        inname = "/Users/hullglick/Documents/Calibration_Table/laser.txt";
+    } else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
+        inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
+    } else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
+        inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
     mprintf("Calibration file name is: %s\n",inname);
     

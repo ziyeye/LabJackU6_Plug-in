@@ -76,8 +76,10 @@ protected:
 	boost::shared_ptr <Scheduler> scheduler;
 	shared_ptr<ScheduleTask>	pulseScheduleNode;
 	shared_ptr<ScheduleTask>	pollScheduleNode;
+    shared_ptr<ScheduleTask>	laserScheduleNode;
 	boost::mutex				pulseScheduleNodeLock;
 	boost::mutex				pollScheduleNodeLock;
+    boost::mutex				laserScheduleNodeLock;
 	boost::mutex				ljU6DriverLock;
 	MWTime						highTimeUS;  // Used to compute length of scheduled high/low pulses
 	
@@ -89,6 +91,7 @@ protected:
     boost::shared_ptr <Variable> lever1Solenoid;
 	boost::shared_ptr <Variable> tTrialLaserPowerMw;
     boost::shared_ptr <Variable> laserTrigger;
+    boost::shared_ptr <Variable> laserDuration;
 	boost::shared_ptr <Variable> strobedDigitalWord;
 	boost::shared_ptr <Variable> counter;
 	boost::shared_ptr <Variable> counter2;
@@ -134,6 +137,7 @@ public:
     static const std::string LEVER1_SOLENOID;
     static const std::string TRIAL_LASER_POWERMW;
     static const std::string LASER_TRIGGER;
+    static const std::string LASER_DURATION;
     static const std::string STROBED_DIGITAL_WORD;
     static const std::string COUNTER;
     static const std::string COUNTER2;
@@ -174,6 +178,8 @@ public:
 	bool readLeverDI(bool *outLever1, bool *cameraState, bool *cameraState2);
 	void pulseDOHigh(int pulseLengthUS);
 	void pulseDOLow();
+    void laserDOHigh(int laserLengthMS);
+    void laserDOLow();
 	void leverSolenoidDO(bool state);
 	void laserDO(double laserPower);  // LED modulation
     void laserDO2(bool state);   //optic switch
@@ -198,6 +204,17 @@ public:
 			}
 		}
 	}
+    
+    virtual void dispenseLaser(Datum data){
+        if(getActive()){
+            bool doLaserDuration = (bool)data;
+            
+            // Bring DO high for pulseDuration
+            if (doLaserDuration) {
+                this->laserDOHigh(laserDuration->getValue());
+            }
+        }
+    }
     
 	virtual void setLever1Solenoid(Datum data) {
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "set 1");
@@ -263,6 +280,22 @@ public:
     virtual void notify(const Datum& data, MWTime timeUS){
         shared_ptr<LabJackU6Device> shared_daq(daq);
         shared_daq->dispense(data);
+    }
+};
+
+class LabJackU6DeviceLaserDurNotification : public VariableNotification {
+    /* reward variable */
+protected:
+    weak_ptr<LabJackU6Device> daq;
+    
+public:
+    LabJackU6DeviceLaserDurNotification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->dispenseLaser(data);
     }
 };
 
