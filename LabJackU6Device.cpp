@@ -121,7 +121,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(LEVER1_SOLENOID, "false");
     info.addParameter(TRIAL_LASER_POWERMW, "0");
     info.addParameter(LASER_TRIGGER, "false");
-    info.addParameter(LASER_DURATION);
+    info.addParameter(LASER_DURATION, "0");
     info.addParameter(STROBED_DIGITAL_WORD, "0");
     info.addParameter(COUNTER, "0");
     info.addParameter(COUNTER2, "0");
@@ -199,7 +199,6 @@ LabJackU6Device::~LabJackU6Device(){
     if (pulseScheduleNode != NULL) {
         boost::mutex::scoped_lock locker(pulseScheduleNodeLock);
         pulseScheduleNode->cancel();
-        pulseScheduleNode->kill();
     }
     detachPhysicalDevice();
 }
@@ -363,7 +362,7 @@ void LabJackU6Device::laserDOHigh(int laserLengthMS) {
     //if (ljU6WriteLaser(ljHandle, power) == false) {
     //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output high; device likely to not work from here on");
     //    return;
-    }
+    //}
     lock.unlock();      //printf("unlock DOhigh\n"); fflush(stdout);
     
     if (clock->getCurrentTimeUS() - t1 > 4000) {
@@ -820,10 +819,10 @@ bool LabJackU6Device::startDeviceIO(){
     trial=0;
     
     // Test if spelling error in optic_device
-    if (strcmp(optic_device->getValue().getString(), "led")!=0 && strcmp(optic_device->getValue().getString(), "laser")!=0)       {
-        merror(M_IODEVICE_MESSAGE_DOMAIN, "Optic Device Name Error and Exit now.");
-        return false;
-    }
+    //if (optic_device->getValue().getString() != "led" && optic_device->getValue().getString() != "laserblue")       {
+    //    merror(M_IODEVICE_MESSAGE_DOMAIN, "Optic Device Name Error and Exit now.");
+    //    return false;
+    //}
     
     
         voltage.clear();                       // clear voltage vector
@@ -1380,11 +1379,11 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     //gethostname(hostname, 1024);
     
     
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+    if (optic_device->getValue().getString() == "led") {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
+    } else if (optic_device->getValue().getString() == "laserblue"){
         inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
+    } else if (optic_device->getValue().getString() == "lasergreen"){
         inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
     mprintf("Calibration file name is: %s\n",inname);
