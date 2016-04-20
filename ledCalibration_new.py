@@ -30,8 +30,8 @@ elif device_type == "lasergreen":
     nVPts  = 21
     DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
 elif device_type == "laserblue":
-    startV = 1.1
-    stopV  = 3
+    startV = 1.4
+    stopV  = 2.7
     nVPts  = 21
     DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
 
@@ -54,8 +54,10 @@ for (tVNum,tV) in enumerate(vLevels):
     d.getFeedback(u6.DAC0_8(DAC0_value))
     if device_type == "led":
         time.sleep(4)  # wait for 3s
-    elif device_type == "laser":
+    elif device_type == "lasergreen":
         time.sleep(10)
+    elif device_type == "laserblue":
+        time.sleep(5)
 
     # read resulting analog AIN0
     ainValue = d.getAIN(0)
