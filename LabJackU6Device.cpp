@@ -411,10 +411,10 @@ void LabJackU6Device::laserDOLow() {
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf("LabJackU6Device: pulseDOLow at %lld us (pulse %lld us long)", current, current - highTimeUS);
     }
-    if (ljU6WriteLaser(ljHandle, 0) == false) {
+    if (!ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, 0) == 1) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
     }
-    // set juice variable low
+    // set laserDuration variable low
     laserDuration->setValue(Datum((long)0));
     
 }
