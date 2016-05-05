@@ -82,6 +82,7 @@ const std::string LabJackU6Device::QBIN_SIZE("Qbin_size");
 const std::string LabJackU6Device::QBIN_TIMEUS("Qbin_timeUS");
 const std::string LabJackU6Device::DOCB("doCB");
 const std::string LabJackU6Device::START_CB("start_CB");
+const std::string LabJackU6Device::START_CB_RUNNING("start_CB_running");
 const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
 const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
 const std::string LabJackU6Device::CHECKRUN("checkrun");
@@ -138,6 +139,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(QBIN_TIMEUS,"0");
     info.addParameter(DOCB,"false");
     info.addParameter(START_CB,"false");
+    info.addParameter(START_CB_RUNNING,"false");
     info.addParameter(RUNNING_CRITERIA,"0");
     info.addParameter(QPULSE_CRITERIA,"0");
     info.addParameter(CHECKRUN,"false");
@@ -171,6 +173,7 @@ Qbin_size(parameters[QBIN_SIZE]),
 Qbin_timeUS(parameters[QBIN_TIMEUS]),
 doCB(parameters[DOCB]),
 start_CB(parameters[START_CB]),
+start_CB_running(parameters[START_CB_RUNNING]),
 running_criteria(parameters[RUNNING_CRITERIA]),
 Qpulse_criteria(parameters[QPULSE_CRITERIA]),
 checkrun(parameters[CHECKRUN]),
@@ -1448,10 +1451,13 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
             }
         }
         
-        if ((Qbin_sum >= running_criteria->getValue().getInteger()) || (Qbin_sum == 0 && QBinValue.size()==6)) {
+        if (Qbin_sum >= running_criteria->getValue().getInteger()) {
             start_CB->setValue(true);
+            start_CB_running->setValue(true);
             //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
+        } else if (Qbin_sum == 0 && QBinValue.size()==6){
+            start_CB->setValue(true);
         } else
             start_CB->setValue(false);
 

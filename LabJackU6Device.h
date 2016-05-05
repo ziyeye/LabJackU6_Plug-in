@@ -108,6 +108,7 @@ protected:
     boost::shared_ptr <Variable> Qbin_timeUS;
     boost::shared_ptr <Variable> doCB;
     boost::shared_ptr <Variable> start_CB;
+    boost::shared_ptr <Variable> start_CB_running;
     boost::shared_ptr <Variable> running_criteria;
     boost::shared_ptr <Variable> Qpulse_criteria;
     boost::shared_ptr <Variable> checkrun;
@@ -154,6 +155,7 @@ public:
     static const std::string QBIN_TIMEUS;
     static const std::string DOCB;
     static const std::string START_CB;
+    static const std::string START_CB_RUNNING;
     static const std::string RUNNING_CRITERIA;
     static const std::string QPULSE_CRITERIA;
     static const std::string CHECKRUN;

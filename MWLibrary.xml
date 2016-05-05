@@ -42,6 +42,7 @@ Used for interfacing to a LabJack U6
                       running_criteria=""
                       Qbin_size=""
                       start_CB=""
+                      start_CB_running=""
                       Qpulse_criteria=""
                       doCB=""
                       running_status=""
