@@ -25,12 +25,12 @@ if device_type == "led":
     nVPts  = 81
     DAC0_value = d.voltageToDACBits(1.4, dacNumber = 0, is16Bits = False)
 elif device_type == "lasergreen":
-    startV = 1.6
-    stopV  = 2.15
-    nVPts  = 21
+    startV = 1.5
+    stopV  = 3
+    nVPts  = 19
     DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
 elif device_type == "laserblue":
-    startV = 1.4
+    startV = 1.475
     stopV  = 2.7
     nVPts  = 21
     DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
