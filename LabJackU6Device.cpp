@@ -86,6 +86,10 @@ const std::string LabJackU6Device::START_CB_RUNNING("start_CB_running");
 const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
 const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
 const std::string LabJackU6Device::CHECKRUN("checkrun");
+const std::string LabJackU6Device::DO_WHEELSPEED("do_wheelspeed");
+const std::string LabJackU6Device::WS_DURATIONUS("ws_durationUS");
+const std::string LabJackU6Device::WHEEL_SPEED("wheel_speed");
+
 
 /* Notes to self MH 100422
  Notes 09252015
@@ -143,13 +147,28 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(RUNNING_CRITERIA,"0");
     info.addParameter(QPULSE_CRITERIA,"0");
     info.addParameter(CHECKRUN,"false");
+    info.addParameter(DO_WHEELSPEED,"false");
+    info.addParameter(WS_DURATIONUS,"1");
+    info.addParameter(WHEEL_SPEED,"0");
+
 }
 
 
 // Constructor for LabJackU6Device
 LabJackU6Device::LabJackU6Device(const ParameterValueMap &parameters) :
 IODevice(parameters),
+lastLever1TransitionTimeUS(0),
+QTimeUS(0),
+QTime2US(0),
+lastLEDonTimeUS(0),
+lastLever1Value(-1),  // -1 means always report first value
+lastCameraState(0),
+ledCount(0),
+lastBinQuadratureValue(0),
+lastQuadratureValue(0),
+trial(0),
 scheduler(Scheduler::instance()),
+ljHandle(NULL),
 pulseDuration(parameters[PULSE_DURATION]),
 pulseOn(parameters[PULSE_ON]),
 lever1(parameters[LEVER1]),
@@ -177,16 +196,10 @@ start_CB_running(parameters[START_CB_RUNNING]),
 running_criteria(parameters[RUNNING_CRITERIA]),
 Qpulse_criteria(parameters[QPULSE_CRITERIA]),
 checkrun(parameters[CHECKRUN]),
-lastCameraState(0),
-ledCount(0),
-lastLEDonTimeUS(0),
-QTimeUS(0),
-deviceIOrunning(false),
-ljHandle(NULL),
-trial(0),
-lastBinQuadratureValue(0),
-lastLever1Value(-1),  // -1 means always report first value
-lastLever1TransitionTimeUS(0)
+do_wheelspeed(parameters[DO_WHEELSPEED]),
+ws_durationUS(parameters[WS_DURATIONUS]),
+wheel_speed(parameters[WHEEL_SPEED]),
+deviceIOrunning(false)
 {
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LabJackU6Device: constructor");
@@ -1138,7 +1151,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     //}
     
-    if (doCB->getValue().getBool()==true) {
+    if (doCB->getValue().getBool()==true && do_wheelspeed->getValue().getBool() == false) {
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
         if (checkrun->getValue().getBool())
             runningCriteria(checkrun->getValue().getBool());
@@ -1147,6 +1160,27 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
             QBinValue.clear();
             lastBinQuadratureValue = quadrature->getValue().getInteger();
         }
+    } else if(doCB->getValue().getBool()==false && do_wheelspeed->getValue().getBool() == true) {
+        quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
+        if (trial == 0) {
+            QTime2US = clock->getCurrentTimeUS();
+            lastQuadratureValue = quadrature->getValue().getInteger();
+        }
+        calculateWheelSpeed();
+    } else if (doCB->getValue().getBool()==true && do_wheelspeed->getValue().getBool() == true) {
+        quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
+        if (checkrun->getValue().getBool())
+            runningCriteria(checkrun->getValue().getBool());
+        else if (!checkrun->getValue().getBool() || start_CB_running->getValue().getBool() ){
+            QTimeUS = clock->getCurrentTimeUS();
+            QBinValue.clear();
+            lastBinQuadratureValue = quadrature->getValue().getInteger();
+        }
+        if (trial == 0) {
+            QTime2US = clock->getCurrentTimeUS();
+            lastQuadratureValue = quadrature->getValue().getInteger();
+        }
+        calculateWheelSpeed();
     } else {
         if (quadrature->getValue().getInteger() != quadratureValue)
             quadrature->setValue(long(quadratureValue));
@@ -1382,11 +1416,11 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     //gethostname(hostname, 1024);
     
     
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+    if (optic_device->getValue().getString() == "led") {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
+    } else if (optic_device->getValue().getString() == "laserblue"){
         inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
+    } else if (optic_device->getValue().getString() == "lasergreen"){
         inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
     mprintf("Calibration file name is: %s\n",inname);
@@ -1423,7 +1457,7 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
         
         QTimeUS = clock->getCurrentTimeUS();
         
-        //mprintf("The bin starts time is %lld.", QTimeUS);
+        //mprintf("The bin time is %lld.", Qbin_timeUS->getValue().getInteger());
         
         // if the quadrature reading has exceeded the running criteria
         if ( (quadrature->getValue().getInteger() - lastBinQuadratureValue) >= Qpulse_criteria->getValue().getInteger()) {
@@ -1450,18 +1484,42 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
                 mprintf("The running status at bin %d is %d", Qindex, n);
             }
         }
-        
+        //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
+        //mprintf("The running criteria is %lld.", Qpulse_criteria->getValue().getInteger());
         if (Qbin_sum >= running_criteria->getValue().getInteger()) {
             start_CB->setValue(true);
             start_CB_running->setValue(true);
+            QBinValue.erase(QBinValue.begin(),QBinValue.begin()+QBinValue.size());
             //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
         } else if (Qbin_sum == 0 && QBinValue.size()==6){
             start_CB->setValue(true);
+            //start_CB_running->setValue(false);
         } else
             start_CB->setValue(false);
+            //start_CB_running->setValue(false);
 
     }
+    
+}
+
+void LabJackU6Device::calculateWheelSpeed() {
+    
+    double speed;
+    shared_ptr <Clock> clock = Clock::instance();
+    
+    if (clock->getCurrentTimeUS() -  QTime2US >= ws_durationUS->getValue().getInteger()) {
+        
+        QTime2US = clock->getCurrentTimeUS();
+        speed = (quadrature->getValue().getInteger() - lastQuadratureValue)*1000000/ws_durationUS->getValue().getInteger();
+        
+        wheel_speed->setValue(speed);
+        //mprintf("*****Quadrature = %d *******", quadrature->getValue().getInteger());
+        //mprintf("*****LastQuadrature = %d *******", lastBinQuadratureValue);
+        //mprintf("*****wheelSpeed = %f *******", speed);
+        lastQuadratureValue = quadrature->getValue().getInteger();
+    }
+
     
 }
 

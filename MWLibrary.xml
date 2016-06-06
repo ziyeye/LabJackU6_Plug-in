@@ -47,6 +47,9 @@ Used for interfacing to a LabJack U6
                       doCB=""
                       running_status=""
                       checkrun=""
+                      do_wheelspeed=""
+                      ws_durationUS=""
+                      wheel_speed=""
                       />
         </code>
     </MWElement>

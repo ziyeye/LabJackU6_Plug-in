@@ -64,11 +64,13 @@ protected:
     
 	MWTime						lastLever1TransitionTimeUS;
     MWTime                      QTimeUS;
+    MWTime                      QTime2US;
     MWTime                      lastLEDonTimeUS;
 	int lastLever1Value;
     int lastCameraState;
     int ledCount;
     long lastBinQuadratureValue;
+    long lastQuadratureValue;
     
     
     unsigned int trial;
@@ -112,6 +114,9 @@ protected:
     boost::shared_ptr <Variable> running_criteria;
     boost::shared_ptr <Variable> Qpulse_criteria;
     boost::shared_ptr <Variable> checkrun;
+    boost::shared_ptr <Variable> do_wheelspeed;
+    boost::shared_ptr <Variable> ws_durationUS;
+    boost::shared_ptr <Variable> wheel_speed;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -159,6 +164,9 @@ public:
     static const std::string RUNNING_CRITERIA;
     static const std::string QPULSE_CRITERIA;
     static const std::string CHECKRUN;
+    static const std::string DO_WHEELSPEED;
+    static const std::string WS_DURATIONUS;
+    static const std::string WHEEL_SPEED;
     
     static void describeComponent(ComponentInfo &info);
 	
@@ -195,6 +203,8 @@ public:
     std::vector<double> interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new );
     
     void runningCriteria(bool checkRunning);
+    
+    void calculateWheelSpeed();
     
 	virtual void dispense(Datum data){
 		if(getActive()){
