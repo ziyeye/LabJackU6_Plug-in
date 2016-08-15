@@ -15,25 +15,34 @@ d.getCalibrationData() # get calibration info for U6
 DAC0_value = d.voltageToDACBits(0, dacNumber = 0, is16Bits = False)
 d.getFeedback(u6.DAC0_8(DAC0_value))
 
-device_type = raw_input('Are you calibrating led or lasergreen or laserblue? ')
+device_type = raw_input('Are you calibrating led or lasergreen or laserblue or laserblueC? ')
 fiber_type  = raw_input('What is your fiber diameter(nm)? ')
 
 # Set DAC0 to 2V and get analog reading from AIN0 to calculate scale
 if device_type == "led":
-    startV = 0.057
-    stopV  = 2
+    startV = 0.07
+    stopV  = 5
     nVPts  = 81
     DAC0_value = d.voltageToDACBits(1.4, dacNumber = 0, is16Bits = False)
 elif device_type == "lasergreen":
+    
     startV = 1.5
     stopV  = 3
     nVPts  = 19
     DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
+elif device_type == "laserblueC":
+    startV = 1.9
+    stopV  = 5
+    nVPts  = 10
+    DAC0_value = d.voltageToDACBits(3, dacNumber = 0, is16Bits = False)
 elif device_type == "laserblue":
-    startV = 1.475
-    stopV  = 2.7
+    #startV = 1.475
+    #stopV  = 2.7
+    #nVPts  = 21
+    startV = 1.4
+    stopV  = 2.05
     nVPts  = 21
-    DAC0_value = d.voltageToDACBits(1.9, dacNumber = 0, is16Bits = False)
+    DAC0_value = d.voltageToDACBits(1.7, dacNumber = 0, is16Bits = False)
 
 d.getFeedback(u6.DAC0_8(DAC0_value))
 
@@ -58,6 +67,8 @@ for (tVNum,tV) in enumerate(vLevels):
         time.sleep(10)
     elif device_type == "laserblue":
         time.sleep(5)
+    elif device_type == "laserblueC":
+        time.sleep(8)
 
     # read resulting analog AIN0
     ainValue = d.getAIN(0)

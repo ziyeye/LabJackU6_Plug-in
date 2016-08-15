@@ -430,6 +430,11 @@ void LabJackU6Device::laserDOLow() {
     if (!ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, 0) == 1) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
     }
+    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+        if (ljU6WriteLaser(ljHandle, 0) == false) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
+        }
+    }
     // set laserDuration variable low
     laserDuration->setValue(Datum((long)0));
     
