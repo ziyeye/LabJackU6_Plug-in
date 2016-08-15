@@ -1422,11 +1422,11 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     //gethostname(hostname, 1024);
     
     
-    if (optic_device->getValue().getString() == "led") {
+    if (strcmp(optic_device->getValue().getString(), "led")==0) {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else if (optic_device->getValue().getString() == "laserblue"){
+    } else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
         inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
-    } else if (optic_device->getValue().getString() == "lasergreen"){
+    } else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
         inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
     mprintf("Calibration file name is: %s\n",inname);
