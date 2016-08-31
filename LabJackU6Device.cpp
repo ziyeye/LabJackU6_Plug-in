@@ -914,21 +914,16 @@ bool LabJackU6Device::stopDeviceIO(){
     // turn off laser/led and optic switch
     laserDO(0);
     laserDO2(false);
-    leverSolenoidDO(false);
     
     if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
     
     if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
-    
-    if (!ljU6WriteDO(ljHandle, LJU6_LEVER1SOLENOID_CIO, 0) == 1)
-        return false; // merror is done in ljU6WriteDO
-    
+
     this->led1_status->setValue(false);
     this->led2_status->setValue(false);
-    this->lever1Solenoid->setValue(false);
-    
+
     return true;
 }
 
