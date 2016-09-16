@@ -50,6 +50,7 @@ Used for interfacing to a LabJack U6
                       do_wheelspeed=""
                       ws_durationUS=""
                       wheel_speed=""
+                      puff_duration=""
                       />
         </code>
     </MWElement>

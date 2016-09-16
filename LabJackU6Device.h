@@ -39,6 +39,7 @@
 #define LJU6_REWARD_FIO         0
 #define LJU6_LEVER1_FIO         1
 #define LJU6_LED1_FIO           2
+#define LJU6_PUFF_FIO           2
 #define LJU6_LED2_FIO           3
 #define LJU6_TCPIN_OFFSET       4 // Timer offset pin
 
@@ -117,6 +118,7 @@ protected:
     boost::shared_ptr <Variable> do_wheelspeed;
     boost::shared_ptr <Variable> ws_durationUS;
     boost::shared_ptr <Variable> wheel_speed;
+    boost::shared_ptr <Variable> puffDuration;
     
 	//MWTime update_period;  MH this is now hardcoded, users should not change this
 	
@@ -167,6 +169,7 @@ public:
     static const std::string DO_WHEELSPEED;
     static const std::string WS_DURATIONUS;
     static const std::string WHEEL_SPEED;
+    static const std::string PUFF_DURATION;
     
     static void describeComponent(ComponentInfo &info);
 	
@@ -188,6 +191,8 @@ public:
 	bool readLeverDI(bool *outLever1, bool *cameraState, bool *cameraState2);
 	void pulseDOHigh(int pulseLengthUS);
 	void pulseDOLow();
+    void puffDOHigh(int puffLengthMS);
+    void puffDOLow();
     void laserDOHigh(int laserLengthMS);
     void laserDOLow();
 	void leverSolenoidDO(bool state);
@@ -216,6 +221,17 @@ public:
 			}
 		}
 	}
+    
+    virtual void dispenseAir(Datum data){
+        if(getActive()){
+            bool doPuff = (bool)data;
+            
+            // Bring DO high for pulseDuration
+            if (doPuff) {
+                this->puffDOHigh(puffDuration->getValue());
+            }
+        }
+    }
     
     virtual void dispenseLaser(Datum data){
         if(getActive()){
@@ -295,8 +311,24 @@ public:
     }
 };
 
-class LabJackU6DeviceLaserDurNotification : public VariableNotification {
+class LabJackU6DevicePuffNotification : public VariableNotification {
     /* reward variable */
+protected:
+    weak_ptr<LabJackU6Device> daq;
+    
+public:
+    LabJackU6DevicePuffNotification(weak_ptr<LabJackU6Device> _daq){
+        daq = _daq;
+    }
+    
+    virtual void notify(const Datum& data, MWTime timeUS){
+        shared_ptr<LabJackU6Device> shared_daq(daq);
+        shared_daq->dispenseAir(data);
+    }
+};
+
+class LabJackU6DeviceLaserDurNotification : public VariableNotification {
+    /* laser variable */
 protected:
     weak_ptr<LabJackU6Device> daq;
     

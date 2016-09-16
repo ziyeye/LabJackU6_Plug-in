@@ -89,7 +89,7 @@ const std::string LabJackU6Device::CHECKRUN("checkrun");
 const std::string LabJackU6Device::DO_WHEELSPEED("do_wheelspeed");
 const std::string LabJackU6Device::WS_DURATIONUS("ws_durationUS");
 const std::string LabJackU6Device::WHEEL_SPEED("wheel_speed");
-
+const std::string LabJackU6Device::PUFF_DURATION("puff_duration");
 
 /* Notes to self MH 100422
  Notes 09252015
@@ -103,7 +103,7 @@ const std::string LabJackU6Device::WHEEL_SPEED("wheel_speed");
  * initialize()     [caleed once]
  * startDeviceIO()  [called by core; every time start button is pressed]
  * stopDeviceIO()   [called by core; every time stop button is pressed]
- * shutdown() [called by core; once, I think]
+ * shutdown() [Not called]
  * Destructor
  -> detachPhysicalDevice
  
@@ -150,6 +150,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(DO_WHEELSPEED,"false");
     info.addParameter(WS_DURATIONUS,"1");
     info.addParameter(WHEEL_SPEED,"0");
+    info.addParameter(PUFF_DURATION);
 
 }
 
@@ -199,6 +200,7 @@ checkrun(parameters[CHECKRUN]),
 do_wheelspeed(parameters[DO_WHEELSPEED]),
 ws_durationUS(parameters[WS_DURATIONUS]),
 wheel_speed(parameters[WHEEL_SPEED]),
+puffDuration(parameters[PUFF_DURATION]),
 deviceIOrunning(false)
 {
     if (VERBOSE_IO_DEVICE >= 2) {
@@ -220,7 +222,7 @@ LabJackU6Device::~LabJackU6Device(){
 }
 
 // Schedule function, never scheduled if LabJack is not initialized
-
+// Reward end
 void *endPulse(const shared_ptr<LabJackU6Device> &gp) {
     
     shared_ptr <Clock> clock = Clock::instance();
@@ -231,6 +233,18 @@ void *endPulse(const shared_ptr<LabJackU6Device> &gp) {
     return(NULL);
 }
 
+// Air puff end
+void *endPuff(const shared_ptr<LabJackU6Device> &gp) {
+    
+    shared_ptr <Clock> clock = Clock::instance();
+    if (VERBOSE_IO_DEVICE >= 2) {
+        mprintf("LabJackU6Device: endPulse callback at %lld us", clock->getCurrentTimeUS());
+    }
+    gp->puffDOLow();
+    return(NULL);
+}
+
+// Led end
 void *endLaser(const shared_ptr<LabJackU6Device> &gp) {
     
     shared_ptr <Clock> clock = Clock::instance();
@@ -355,6 +369,80 @@ void LabJackU6Device::pulseDOLow() {
     // set juice variable low
     pulseDuration->setValue(Datum((long)0));
     
+}
+
+// set Puff high
+void LabJackU6Device::puffDOHigh(int puffLengthMS) {
+    shared_ptr <Clock> clock = Clock::instance();
+    // Takes and releases pulseScheduleNodeLock
+    // Takes and releases driver lock
+    
+    // Set the DO high first
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
+    if (ljHandle == NULL) {
+        return;
+    }
+    if (VERBOSE_IO_DEVICE >= 2) {
+        mprintf("LabJackU6Device: setting pulse high %d ms (%lld)", puffLengthMS / 1000, clock->getCurrentTimeUS());
+    }
+    MWTime t1 = clock->getCurrentTimeUS();  // to check elapsed time below
+    if (ljU6WriteDO(ljHandle, LJU6_PUFF_FIO, 1) == false) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output high; device likely to not work from here on");
+        return;
+    }
+    lock.unlock();      //printf("unlock DOhigh\n"); fflush(stdout);
+    
+    if (clock->getCurrentTimeUS() - t1 > 4000) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN,
+               "LJU6: Writing the DO took longer than 4ms.  Is the device connected to a high-speed hub?  Pulse length is wrong.");
+    }
+    
+    // Schedule endPulse call
+    if (puffLengthMS <= LJU6_EMPIRICAL_DO_LATENCY_MS+1) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "LJU6: requested pulse length %dms too short (<%dms), not doing digital IO",
+               puffLengthMS, LJU6_EMPIRICAL_DO_LATENCY_MS+1);
+    } else {
+        // long enough, do it
+        boost::mutex::scoped_lock pLock(pulseScheduleNodeLock);
+        shared_ptr<LabJackU6Device> this_one = shared_from_this();
+        pulseScheduleNode = scheduler->scheduleMS(std::string(FILELINE ": ") + getTag(),
+                                                  (puffLengthMS) - LJU6_EMPIRICAL_DO_LATENCY_MS,
+                                                  0,
+                                                  1,
+                                                  boost::bind(endPuff, this_one),
+                                                  M_DEFAULT_IODEVICE_PRIORITY,
+                                                  M_DEFAULT_IODEVICE_WARN_SLOP_US,
+                                                  M_DEFAULT_IODEVICE_FAIL_SLOP_US,
+                                                  M_MISSED_EXECUTION_CATCH_UP);
+        
+        MWTime current = clock->getCurrentTimeUS();
+        if (VERBOSE_IO_DEVICE >= 2) {
+            mprintf("LabJackU6Device:  schedule endPuff callback at %lld us (%lld)", current, clock->getCurrentTimeUS());
+        }
+        highTimeUS = current;
+    }
+    
+}
+
+// set the DO low for Air puff
+
+void LabJackU6Device::puffDOLow() {
+    
+    shared_ptr <Clock> clock = Clock::instance();
+    MWTime current = clock->getCurrentTimeUS();
+    
+    boost::mutex::scoped_lock lock(ljU6DriverLock);
+    if (ljHandle == NULL) {
+        return;
+    }
+    if (VERBOSE_IO_DEVICE >= 2) {
+        mprintf("LabJackU6Device: puffDoLow at %lld us (puff %lld us long)", current, current - highTimeUS);
+    }
+    if (ljU6WriteDO(ljHandle, LJU6_PUFF_FIO, 0) == false) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
+    }
+    // set juice variable low
+    puffDuration->setValue(Datum((long)0));
 }
 
 // set Laser high
@@ -748,6 +836,7 @@ bool LabJackU6Device::initialize() {
     if (!ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
     this->led1_status->setValue(Datum(M_BOOLEAN,0));
+    this->puffDuration->setValue(Datum(M_INTEGER, 0));
     
     if (!ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) == 1)
         return false; // merror is done in ljU6WriteDO
@@ -968,6 +1057,11 @@ void LabJackU6Device::variableSetup() {
     shared_ptr<VariableNotification> notif5(new LabJackU6DeviceLaserDurNotification(weak_self_ref));
     doLaserDuration->addNotification(notif5);
     
+    // Puff
+    shared_ptr<Variable> doPuff = this->puffDuration;
+    shared_ptr<VariableNotification> notif6(new LabJackU6DevicePuffNotification(weak_self_ref));
+    doPuff->addNotification(notif6);
+
     connected = true;
 }
 
