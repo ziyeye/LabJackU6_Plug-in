@@ -150,7 +150,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(DO_WHEELSPEED,"false");
     info.addParameter(WS_DURATIONUS,"1");
     info.addParameter(WHEEL_SPEED,"0");
-    info.addParameter(PUFF_DURATION);
+    info.addParameter(PUFF_DURATION,"0");
 
 }
 
