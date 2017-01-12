@@ -518,7 +518,7 @@ void LabJackU6Device::laserDOLow() {
     if (!ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, 0) == 1) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
     }
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+    if (optic_device->getValue().getString() ==  "led") {
         if (ljU6WriteLaser(ljHandle, 0) == false) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
         }
@@ -1515,12 +1515,11 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     
     //gethostname(hostname, 1024);
     
-    
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+    if (optic_device->getValue().getString() == "led") {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
+    } else if (optic_device->getValue().getString() == "laserblue"){
         inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
+    } else if (optic_device->getValue().getString() == "lasergreen"){
         inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
     mprintf("Calibration file name is: %s\n",inname);
