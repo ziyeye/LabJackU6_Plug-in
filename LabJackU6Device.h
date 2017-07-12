@@ -38,7 +38,7 @@
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
 #define LJU6_LEVER1_FIO         1
-#define LJU6_LED1_FIO           2
+#define LJU6_LED1_FIO           17
 #define LJU6_PUFF_FIO           2
 #define LJU6_LED2_FIO           3
 #define LJU6_TCPIN_OFFSET       4 // Timer offset pin

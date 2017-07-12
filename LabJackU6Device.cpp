@@ -37,7 +37,7 @@ using std::vector;
 static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit manipulation
     (  (0x01 << LJU6_REWARD_FIO)                                // FIO
      | (0x00 << LJU6_LEVER1_FIO)
-     | (0x01 << LJU6_LED1_FIO)
+     //| (0x01 << LJU6_LED1_FIO)
      | (0x01 << LJU6_LED2_FIO)),
         0xff,
     (  (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET))
@@ -586,14 +586,19 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         lastCameraState = 1;
         
         if (led_port != 0) {
-            if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            }
-            if (led_port == 1)
-                led1_status-> setValue(true);
-            if (led_port == 2)
-                led2_status-> setValue(true);
             
+            if (led_port == 1) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 1) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led1_status-> setValue(true);
+            }
+            if (led_port == 2) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 1) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led2_status-> setValue(true);
+            }
         }
         // to get excution time in ms and delay could be <=1ms
         lastLEDonTimeUS = clock->getCurrentTimeUS();
@@ -652,14 +657,19 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         }
         */
         if (led_port != 0) {
-            if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            }
-            if (led_port == 1)
-                led1_status-> setValue(false);
-            if (led_port == 2)
-                led2_status-> setValue(false);
             
+            if (led_port == 1) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led1_status-> setValue(false);
+            }
+            if (led_port == 2) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led2_status-> setValue(false);
+            }
         }
         //led1_status-> setValue(false);
         
