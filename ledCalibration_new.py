@@ -21,9 +21,9 @@ fiber_type  = raw_input('What is your fiber diameter(nm)? ')
 # Set DAC0 to 2V and get analog reading from AIN0 to calculate scale
 if device_type == "led":
     startV = 0.07
-    stopV  = 5
-    nVPts  = 81
-    DAC0_value = d.voltageToDACBits(1.4, dacNumber = 0, is16Bits = False)
+    stopV  = 1
+    nVPts  = 51
+    DAC0_value = d.voltageToDACBits(0.8, dacNumber = 0, is16Bits = False)
 elif device_type == "lasergreen":
     
     startV = 1.5
