@@ -1524,11 +1524,14 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     //char hostname[1024];
     
     //gethostname(hostname, 1024);
-    
+    //if (strcmp(optic_device->getValue().getString(), "led")==0) {
+
     if (optic_device->getValue().getString() == "led") {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
+    //} else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
     } else if (optic_device->getValue().getString() == "laserblue"){
         inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
+    //} else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
     } else if (optic_device->getValue().getString() == "lasergreen"){
         inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
