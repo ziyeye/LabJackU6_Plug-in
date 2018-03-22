@@ -110,7 +110,8 @@ protected:
     boost::shared_ptr <Variable> Qbin_size;
     boost::shared_ptr <Variable> Qbin_timeUS;
     boost::shared_ptr <Variable> doCB;
-    boost::shared_ptr <Variable> start_CB;
+    boost::shared_ptr <Variable> start_CB_still;
+    boost::shared_ptr <Variable> still_duration;
     boost::shared_ptr <Variable> start_CB_running;
     boost::shared_ptr <Variable> running_criteria;
     boost::shared_ptr <Variable> Qpulse_criteria;
@@ -130,6 +131,7 @@ protected:
     std::vector<double> pmw;
     
     std::vector<int> QBinValue;
+    std::vector<int> WheelSpeedArray;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
@@ -161,7 +163,8 @@ public:
     static const std::string QBIN_SIZE;
     static const std::string QBIN_TIMEUS;
     static const std::string DOCB;
-    static const std::string START_CB;
+    static const std::string START_CB_STILL;
+    static const std::string STILL_DURATION;
     static const std::string START_CB_RUNNING;
     static const std::string RUNNING_CRITERIA;
     static const std::string QPULSE_CRITERIA;

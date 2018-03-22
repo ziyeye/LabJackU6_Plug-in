@@ -81,7 +81,8 @@ const std::string LabJackU6Device::LED_DURATION("LED_duration");
 const std::string LabJackU6Device::QBIN_SIZE("Qbin_size");
 const std::string LabJackU6Device::QBIN_TIMEUS("Qbin_timeUS");
 const std::string LabJackU6Device::DOCB("doCB");
-const std::string LabJackU6Device::START_CB("start_CB");
+const std::string LabJackU6Device::START_CB_STILL("start_CB_still");
+const std::string LabJackU6Device::STILL_DURATION("still_duration");
 const std::string LabJackU6Device::START_CB_RUNNING("start_CB_running");
 const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
 const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
@@ -142,7 +143,8 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(QBIN_SIZE,"0");
     info.addParameter(QBIN_TIMEUS,"0");
     info.addParameter(DOCB,"false");
-    info.addParameter(START_CB,"false");
+    info.addParameter(START_CB_STILL,"false");
+    info.addParameter(STILL_DURATION,"0");
     info.addParameter(START_CB_RUNNING,"false");
     info.addParameter(RUNNING_CRITERIA,"0");
     info.addParameter(QPULSE_CRITERIA,"0");
@@ -192,7 +194,8 @@ LED_duration(parameters[LED_DURATION]),
 Qbin_size(parameters[QBIN_SIZE]),
 Qbin_timeUS(parameters[QBIN_TIMEUS]),
 doCB(parameters[DOCB]),
-start_CB(parameters[START_CB]),
+start_CB_still(parameters[START_CB_STILL]),
+still_duration(parameters[STILL_DURATION]),
 start_CB_running(parameters[START_CB_RUNNING]),
 running_criteria(parameters[RUNNING_CRITERIA]),
 Qpulse_criteria(parameters[QPULSE_CRITERIA]),
@@ -1279,13 +1282,14 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         calculateWheelSpeed();
     } else if (doCB->getValue().getBool()==true && do_wheelspeed->getValue().getBool() == true) {
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
-        if (checkrun->getValue().getBool())
+        /*if (checkrun->getValue().getBool())
             runningCriteria(checkrun->getValue().getBool());
         else if (!checkrun->getValue().getBool() || start_CB_running->getValue().getBool() ){
             QTimeUS = clock->getCurrentTimeUS();
             QBinValue.clear();
             lastBinQuadratureValue = quadrature->getValue().getInteger();
         }
+         */
         if (trial == 0) {
             QTime2US = clock->getCurrentTimeUS();
             lastQuadratureValue = quadrature->getValue().getInteger();
@@ -1599,17 +1603,18 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
         //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
         //mprintf("The running criteria is %lld.", Qpulse_criteria->getValue().getInteger());
         if (Qbin_sum >= running_criteria->getValue().getInteger()) {
-            start_CB->setValue(true);
             start_CB_running->setValue(true);
+            start_CB_still->setValue(false);
             QBinValue.erase(QBinValue.begin(),QBinValue.begin()+QBinValue.size());
             //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
-        } else if (Qbin_sum == 0 && QBinValue.size()==6){
-            start_CB->setValue(true);
-            //start_CB_running->setValue(false);
+        } else if (Qbin_sum == 0 && QBinValue.size() >= (still_duration->getValue().getInteger()*1000/Qbin_timeUS->getValue().getInteger())){
+            // if still longer than required also make sure Qbin_timeUs is same as wheelspeed interval
+            start_CB_still->setValue(true);
+            start_CB_running->setValue(false);
         } else
-            start_CB->setValue(false);
-            //start_CB_running->setValue(false);
+            start_CB_still->setValue(false);
+            start_CB_running->setValue(false);
 
     }
     
@@ -1618,6 +1623,9 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
 void LabJackU6Device::calculateWheelSpeed() {
     
     double speed;
+    long binSize;
+    int speed_sum = 0;
+    
     shared_ptr <Clock> clock = Clock::instance();
     
     if (clock->getCurrentTimeUS() -  QTime2US >= ws_durationUS->getValue().getInteger()) {
@@ -1626,12 +1634,30 @@ void LabJackU6Device::calculateWheelSpeed() {
         speed = (quadrature->getValue().getInteger() - lastQuadratureValue)*1000000/ws_durationUS->getValue().getInteger();
         
         wheel_speed->setValue(speed);
+        if (doCB->getValue().getBool()==true) {
+            WheelSpeedArray.push_back(speed);
+            binSize = (still_duration->getValue().getInteger()*1000/ws_durationUS->getValue().getInteger());
+            if (speed >= running_criteria->getValue().getInteger()) {
+                start_CB_running->setValue(true);
+            }
+            
+            if (speed < running_criteria->getValue().getInteger() && WheelSpeedArray.size() >= binSize) {
+                std::vector<int> temp_speed(WheelSpeedArray.end() - binSize + 1, WheelSpeedArray.end());
+                for (int n:temp_speed) {
+                    speed_sum += n;
+                }
+                if (speed_sum == 0) {
+                    start_CB_still->setValue(true);
+                }
+                WheelSpeedArray.clear();
+            }
+        }
         //mprintf("*****Quadrature = %d *******", quadrature->getValue().getInteger());
         //mprintf("*****LastQuadrature = %d *******", lastBinQuadratureValue);
         //mprintf("*****wheelSpeed = %f *******", speed);
         lastQuadratureValue = quadrature->getValue().getInteger();
     }
-
+    
     
 }
 
