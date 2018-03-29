@@ -84,6 +84,7 @@ const std::string LabJackU6Device::DOCB("doCB");
 const std::string LabJackU6Device::START_CB_STILL("start_CB_still");
 const std::string LabJackU6Device::STILL_DURATION("still_duration");
 const std::string LabJackU6Device::START_CB_RUNNING("start_CB_running");
+const std::string LabJackU6Device::RUNNING_DURATION("running_duration");
 const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
 const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
 const std::string LabJackU6Device::CHECKRUN("checkrun");
@@ -146,6 +147,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(START_CB_STILL,"false");
     info.addParameter(STILL_DURATION,"0");
     info.addParameter(START_CB_RUNNING,"false");
+    info.addParameter(RUNNING_DURATION,"0");
     info.addParameter(RUNNING_CRITERIA,"0");
     info.addParameter(QPULSE_CRITERIA,"0");
     info.addParameter(CHECKRUN,"false");
@@ -197,6 +199,7 @@ doCB(parameters[DOCB]),
 start_CB_still(parameters[START_CB_STILL]),
 still_duration(parameters[STILL_DURATION]),
 start_CB_running(parameters[START_CB_RUNNING]),
+running_duration(parameters[RUNNING_DURATION]),
 running_criteria(parameters[RUNNING_CRITERIA]),
 Qpulse_criteria(parameters[QPULSE_CRITERIA]),
 checkrun(parameters[CHECKRUN]),
@@ -1623,8 +1626,9 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
 void LabJackU6Device::calculateWheelSpeed() {
     
     double speed;
-    long binSize;
-    int speed_sum = 0;
+    long binSizeStill;
+    long binSizeRun;
+    int speed_sum = 0; int binIdx = 0;
     
     shared_ptr <Clock> clock = Clock::instance();
     
@@ -1636,20 +1640,34 @@ void LabJackU6Device::calculateWheelSpeed() {
         wheel_speed->setValue(speed);
         if (doCB->getValue().getBool()==true) {
             WheelSpeedArray.push_back(speed);
-            binSize = (still_duration->getValue().getInteger()*1000/ws_durationUS->getValue().getInteger());
-            if (speed >= running_criteria->getValue().getInteger()) {
-                start_CB_running->setValue(true);
+            
+            binSizeStill = (still_duration->getValue().getInteger()*1000/ws_durationUS->getValue().getInteger());
+            binSizeRun = (running_duration->getValue().getInteger()*1000/ws_durationUS->getValue().getInteger());
+            
+            if (speed >= running_criteria->getValue().getInteger() && WheelSpeedArray.size() >= binSizeRun && !start_CB_running->getValue().getBool()) {
+                std::vector<int> temp_speed(WheelSpeedArray.end() - binSizeRun + 1, WheelSpeedArray.end());
+                for (int n:temp_speed) {
+                    speed_sum += n;
+                    ++binIdx;
+                }
+                if (speed_sum/binIdx >= running_criteria->getValue().getInteger()) {
+                    start_CB_running->setValue(true);
+                    WheelSpeedArray.clear();
+                }
+                
+                
             }
             
-            if (speed < running_criteria->getValue().getInteger() && WheelSpeedArray.size() >= binSize) {
-                std::vector<int> temp_speed(WheelSpeedArray.end() - binSize + 1, WheelSpeedArray.end());
+            if (speed==0 && WheelSpeedArray.size() >= binSizeStill && !start_CB_still->getValue().getBool()) {
+                std::vector<int> temp_speed(WheelSpeedArray.end() - binSizeStill + 1, WheelSpeedArray.end());
                 for (int n:temp_speed) {
                     speed_sum += n;
                 }
                 if (speed_sum == 0) {
                     start_CB_still->setValue(true);
+                    WheelSpeedArray.clear();
                 }
-                WheelSpeedArray.clear();
+                
             }
         }
         //mprintf("*****Quadrature = %d *******", quadrature->getValue().getInteger());

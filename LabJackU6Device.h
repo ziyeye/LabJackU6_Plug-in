@@ -113,6 +113,7 @@ protected:
     boost::shared_ptr <Variable> start_CB_still;
     boost::shared_ptr <Variable> still_duration;
     boost::shared_ptr <Variable> start_CB_running;
+    boost::shared_ptr <Variable> running_duration;
     boost::shared_ptr <Variable> running_criteria;
     boost::shared_ptr <Variable> Qpulse_criteria;
     boost::shared_ptr <Variable> checkrun;
@@ -166,6 +167,7 @@ public:
     static const std::string START_CB_STILL;
     static const std::string STILL_DURATION;
     static const std::string START_CB_RUNNING;
+    static const std::string RUNNING_DURATION;
     static const std::string RUNNING_CRITERIA;
     static const std::string QPULSE_CRITERIA;
     static const std::string CHECKRUN;
