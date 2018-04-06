@@ -31,6 +31,7 @@
 #undef VERBOSE_IO_DEVICE
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
+// change sampling time to 500 when using alternating two LEDs
 #define LJU6_DITASK_UPDATE_PERIOD_US 1000    // "sampling time" in MWorks, not going faster than this?
 #define LJU6_DITASK_WARN_SLOP_US     500000000
 #define LJU6_DITASK_FAIL_SLOP_US     500000000

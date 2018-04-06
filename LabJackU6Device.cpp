@@ -160,6 +160,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
 
 
 // Constructor for LabJackU6Device
+// the variables defined here are a combination of ones used internally and ones used in MWorks
 LabJackU6Device::LabJackU6Device(const ParameterValueMap &parameters) :
 IODevice(parameters),
 lastLever1TransitionTimeUS(0),
@@ -231,7 +232,7 @@ LabJackU6Device::~LabJackU6Device(){
 // Reward end
 void *endPulse(const shared_ptr<LabJackU6Device> &gp) {
     
-    shared_ptr <Clock> clock = Clock::instance();
+    shared_ptr <Clock> clock = Clock::instance(); // get MWorks time from Clock
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf("LabJackU6Device: endPulse callback at %lld us", clock->getCurrentTimeUS());
     }
@@ -296,8 +297,8 @@ bool LabJackU6Device::pollAllDI() {
     
     // control 2 led if neeeded
     if(do2led->getValue().getBool() == true ) {       // could have created a separated schedule node
-        ledDo2(cameraState, cameraState2);            // but since we update all ports in pollAllDI, we might just
-    }                               // call do2led here
+        ledDo2(cameraState, cameraState2);            // but since we update all ports in pollAllDI, we might just call do2led here
+    }
     
     return true;
 }
@@ -564,7 +565,7 @@ void LabJackU6Device::laserDO2(bool state) {
     
 }
 
-
+// alternating green and blue LEDs
 bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
     
     shared_ptr <Clock> clock = Clock::instance();
@@ -609,20 +610,10 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         // to get excution time in ms and delay could be <=1ms
         lastLEDonTimeUS = clock->getCurrentTimeUS();
         
-        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
-        
-                    //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-            //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            //}
-        
-                    //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-            //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            //}
-        
-        
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
         
     }
+    // plus a tiny amount of time to clock to account for time to turn off LED
     if ( ((clock->getCurrentTimeUS() - lastLEDonTimeUS + 600) >= (LED_duration->getValue().getFloat())*1000) && lastCameraState == 1) {
         
         lastCameraState = 0;
@@ -633,35 +624,6 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
 
         ledCount++;
         
-        //if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
-        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
-        //}
-        
-        //long test_time = getTickCount();
-        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led off: %ld", test_time);
-        
-        //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED1_FIO);
-        //}
-        
-        //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
-        //}
-        /*
-        if (led1_status->getValue().getBool() == true) {
-            led1_status-> setValue(false);
-            if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED1_FIO);
-            }
-        }
-        
-        if (led2_status->getValue().getBool() == true) {
-            led2_status-> setValue(false);
-            if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
-            }
-        }
-        */
         if (led_port != 0) {
             
             if (led_port == 1) {
@@ -1259,13 +1221,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     
-    //quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
-    //mprintf("*****Quadrature = %d *******", quadratureValue);
-    // Update quadrature variable (only if quadrature value has changed)
-    //if (quadrature->getValue().getInteger() != quadratureValue) {
-    
-    //}
-    
+    // call functions for three scenarios
+    // but for now calculateWheelSpeed is also used for CerebellarStim
     if (doCB->getValue().getBool()==true && do_wheelspeed->getValue().getBool() == false) {
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
         if (checkrun->getValue().getBool())
@@ -1373,6 +1330,7 @@ bool LabJackU6Device::ljU6WriteDO(HANDLE Handle, long Channel, long State) {
     return true;
 }
 
+// not used, it's for sending TTL to eletrophysiology
 bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
     
     uint8 outEioBits = inWord & 0xff;      // Turn on specific EIO ports
@@ -1488,7 +1446,7 @@ int LabJackU6Device::findNearestNeighbourIndex( double value, const std::vector<
     
     return idx;
 }
-
+// to interpolate voltage and LED strength
 vector<double> LabJackU6Device::interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new )
 {
     std::vector< double > y_new;
