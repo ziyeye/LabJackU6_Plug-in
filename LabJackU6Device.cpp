@@ -1233,8 +1233,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
             lastBinQuadratureValue = quadrature->getValue().getInteger();
         }
     } else if(doCB->getValue().getBool()==false && do_wheelspeed->getValue().getBool() == true) {
-        if (quadrature->getValue().getInteger() != quadratureValue)
-            quadrature->setValue(long(quadratureValue));
+        quadrature->setValue(long(quadratureValue));
         if (trial == 0) {
             QTime2US = clock->getCurrentTimeUS();
             lastQuadratureValue = quadrature->getValue().getInteger();
