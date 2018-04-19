@@ -1610,6 +1610,9 @@ void LabJackU6Device::calculateWheelSpeed() {
                 if (speed_sum/binIdx >= running_criteria->getValue().getInteger()) {
                     start_CB_running->setValue(true);
                     WheelSpeedArray.clear();
+                    
+                } else {
+                    start_CB_running->setValue(false);
                 }
                 
                 
@@ -1618,7 +1621,7 @@ void LabJackU6Device::calculateWheelSpeed() {
             if (speed==0 && WheelSpeedArray.size() >= binSizeStill && !start_CB_still->getValue().getBool()) {
                 std::vector<int> temp_speed(WheelSpeedArray.end() - binSizeStill + 1, WheelSpeedArray.end());
                 for (int n:temp_speed) {
-                    speed_sum += n;
+                    speed_sum += abs(n);
                 }
                 if (speed_sum == 0) {
                     start_CB_still->setValue(true);
