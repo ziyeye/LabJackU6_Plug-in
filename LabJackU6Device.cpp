@@ -37,7 +37,7 @@ using std::vector;
 static const unsigned char ljPortDir[3] = {  // 0 input, 1 output, perform bit manipulation
     (  (0x01 << LJU6_REWARD_FIO)                                // FIO
      | (0x00 << LJU6_LEVER1_FIO)
-     | (0x01 << LJU6_LED1_FIO)
+     //| (0x01 << LJU6_LED1_FIO)
      | (0x01 << LJU6_LED2_FIO)),
         0xff,
     (  (0x01 << (LJU6_LASERTRIGGER_CIO - LJU6_CIO_OFFSET))
@@ -81,8 +81,10 @@ const std::string LabJackU6Device::LED_DURATION("LED_duration");
 const std::string LabJackU6Device::QBIN_SIZE("Qbin_size");
 const std::string LabJackU6Device::QBIN_TIMEUS("Qbin_timeUS");
 const std::string LabJackU6Device::DOCB("doCB");
-const std::string LabJackU6Device::START_CB("start_CB");
+const std::string LabJackU6Device::START_CB_STILL("start_CB_still");
+const std::string LabJackU6Device::STILL_DURATION("still_duration");
 const std::string LabJackU6Device::START_CB_RUNNING("start_CB_running");
+const std::string LabJackU6Device::RUNNING_DURATION("running_duration");
 const std::string LabJackU6Device::RUNNING_CRITERIA("running_criteria");
 const std::string LabJackU6Device::QPULSE_CRITERIA("Qpulse_criteria");
 const std::string LabJackU6Device::CHECKRUN("checkrun");
@@ -142,8 +144,10 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
     info.addParameter(QBIN_SIZE,"0");
     info.addParameter(QBIN_TIMEUS,"0");
     info.addParameter(DOCB,"false");
-    info.addParameter(START_CB,"false");
+    info.addParameter(START_CB_STILL,"false");
+    info.addParameter(STILL_DURATION,"0");
     info.addParameter(START_CB_RUNNING,"false");
+    info.addParameter(RUNNING_DURATION,"0");
     info.addParameter(RUNNING_CRITERIA,"0");
     info.addParameter(QPULSE_CRITERIA,"0");
     info.addParameter(CHECKRUN,"false");
@@ -156,6 +160,7 @@ void LabJackU6Device::describeComponent(ComponentInfo &info) {
 
 
 // Constructor for LabJackU6Device
+// the variables defined here are a combination of ones used internally and ones used in MWorks
 LabJackU6Device::LabJackU6Device(const ParameterValueMap &parameters) :
 IODevice(parameters),
 lastLever1TransitionTimeUS(0),
@@ -192,8 +197,10 @@ LED_duration(parameters[LED_DURATION]),
 Qbin_size(parameters[QBIN_SIZE]),
 Qbin_timeUS(parameters[QBIN_TIMEUS]),
 doCB(parameters[DOCB]),
-start_CB(parameters[START_CB]),
+start_CB_still(parameters[START_CB_STILL]),
+still_duration(parameters[STILL_DURATION]),
 start_CB_running(parameters[START_CB_RUNNING]),
+running_duration(parameters[RUNNING_DURATION]),
 running_criteria(parameters[RUNNING_CRITERIA]),
 Qpulse_criteria(parameters[QPULSE_CRITERIA]),
 checkrun(parameters[CHECKRUN]),
@@ -225,7 +232,7 @@ LabJackU6Device::~LabJackU6Device(){
 // Reward end
 void *endPulse(const shared_ptr<LabJackU6Device> &gp) {
     
-    shared_ptr <Clock> clock = Clock::instance();
+    shared_ptr <Clock> clock = Clock::instance(); // get MWorks time from Clock
     if (VERBOSE_IO_DEVICE >= 2) {
         mprintf("LabJackU6Device: endPulse callback at %lld us", clock->getCurrentTimeUS());
     }
@@ -290,8 +297,8 @@ bool LabJackU6Device::pollAllDI() {
     
     // control 2 led if neeeded
     if(do2led->getValue().getBool() == true ) {       // could have created a separated schedule node
-        ledDo2(cameraState, cameraState2);            // but since we update all ports in pollAllDI, we might just
-    }                               // call do2led here
+        ledDo2(cameraState, cameraState2);            // but since we update all ports in pollAllDI, we might just call do2led here
+    }
     
     return true;
 }
@@ -518,7 +525,7 @@ void LabJackU6Device::laserDOLow() {
     if (!ljU6WriteDO(ljHandle, LJU6_LASERTRIGGER_CIO, 0) == 1) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
     }
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+    if (optic_device->getValue().getString() ==  "led") {
         if (ljU6WriteLaser(ljHandle, 0) == false) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing digital output low; device likely to not work from here on");
         }
@@ -558,7 +565,7 @@ void LabJackU6Device::laserDO2(bool state) {
     
 }
 
-
+// alternating green and blue LEDs
 bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
     
     shared_ptr <Clock> clock = Clock::instance();
@@ -586,32 +593,27 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
         lastCameraState = 1;
         
         if (led_port != 0) {
-            if (ljU6WriteDO(ljHandle, led_port+1, 1) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            }
-            if (led_port == 1)
-                led1_status-> setValue(true);
-            if (led_port == 2)
-                led2_status-> setValue(true);
             
+            if (led_port == 1) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 1) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led1_status-> setValue(true);
+            }
+            if (led_port == 2) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 1) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led2_status-> setValue(true);
+            }
         }
         // to get excution time in ms and delay could be <=1ms
         lastLEDonTimeUS = clock->getCurrentTimeUS();
         
-        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led on: %ld", test_time);
-        
-                    //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-            //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            //}
-        
-                    //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-            //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            //}
-        
-        
         //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "LED status: 1--%d, 2--%d", led1_status->getValue().getBool(), led2_status->getValue().getBool());
         
     }
+    // plus a tiny amount of time to clock to account for time to turn off LED
     if ( ((clock->getCurrentTimeUS() - lastLEDonTimeUS + 600) >= (LED_duration->getValue().getFloat())*1000) && lastCameraState == 1) {
         
         lastCameraState = 0;
@@ -622,44 +624,20 @@ bool LabJackU6Device::ledDo2(bool &cameraState, bool &cameraState2){
 
         ledCount++;
         
-        //if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
-        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state low; device likely to be broken", led_port);
-        //}
-        
-        //long test_time = getTickCount();
-        //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "time for led off: %ld", test_time);
-        
-        //if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED1_FIO);
-        //}
-        
-        //if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-        //    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
-        //}
-        /*
-        if (led1_status->getValue().getBool() == true) {
-            led1_status-> setValue(false);
-            if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED1_FIO);
-            }
-        }
-        
-        if (led2_status->getValue().getBool() == true) {
-            led2_status-> setValue(false);
-            if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", LJU6_LED2_FIO);
-            }
-        }
-        */
         if (led_port != 0) {
-            if (ljU6WriteDO(ljHandle, led_port+1, 0) != true) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
-            }
-            if (led_port == 1)
-                led1_status-> setValue(false);
-            if (led_port == 2)
-                led2_status-> setValue(false);
             
+            if (led_port == 1) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED1_FIO, 0) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led1_status-> setValue(false);
+            }
+            if (led_port == 2) {
+                if (ljU6WriteDO(ljHandle, LJU6_LED2_FIO, 0) != true) {
+                    merror(M_IODEVICE_MESSAGE_DOMAIN, "bug: writing led %d state high; device likely to be broken", led_port);
+                }
+                led2_status-> setValue(false);
+            }
         }
         //led1_status-> setValue(false);
         
@@ -1243,13 +1221,8 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     
     //mprintf("*****Quadrature = %d *******", quadratureValue);
     
-    //quadratureValue = CFSwapInt32LittleToHost(quadratureValue);  // Convert to host byte order
-    //mprintf("*****Quadrature = %d *******", quadratureValue);
-    // Update quadrature variable (only if quadrature value has changed)
-    //if (quadrature->getValue().getInteger() != quadratureValue) {
-    
-    //}
-    
+    // call functions for three scenarios
+    // but for now calculateWheelSpeed is also used for CerebellarStim
     if (doCB->getValue().getBool()==true && do_wheelspeed->getValue().getBool() == false) {
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
         if (checkrun->getValue().getBool())
@@ -1260,8 +1233,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
             lastBinQuadratureValue = quadrature->getValue().getInteger();
         }
     } else if(doCB->getValue().getBool()==false && do_wheelspeed->getValue().getBool() == true) {
-        if (quadrature->getValue().getInteger() != quadratureValue)
-            quadrature->setValue(long(quadratureValue));
+        quadrature->setValue(long(quadratureValue));
         if (trial == 0) {
             QTime2US = clock->getCurrentTimeUS();
             lastQuadratureValue = quadrature->getValue().getInteger();
@@ -1269,13 +1241,14 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
         calculateWheelSpeed();
     } else if (doCB->getValue().getBool()==true && do_wheelspeed->getValue().getBool() == true) {
         quadrature->setValue(long(quadratureValue));   // to update quadrature reading more frequent
-        if (checkrun->getValue().getBool())
+        /*if (checkrun->getValue().getBool())
             runningCriteria(checkrun->getValue().getBool());
         else if (!checkrun->getValue().getBool() || start_CB_running->getValue().getBool() ){
             QTimeUS = clock->getCurrentTimeUS();
             QBinValue.clear();
             lastBinQuadratureValue = quadrature->getValue().getInteger();
         }
+         */
         if (trial == 0) {
             QTime2US = clock->getCurrentTimeUS();
             lastQuadratureValue = quadrature->getValue().getInteger();
@@ -1356,6 +1329,7 @@ bool LabJackU6Device::ljU6WriteDO(HANDLE Handle, long Channel, long State) {
     return true;
 }
 
+// not used, it's for sending TTL to eletrophysiology
 bool LabJackU6Device::ljU6WriteStrobedWord(HANDLE Handle, unsigned int inWord) {
     
     uint8 outEioBits = inWord & 0xff;      // Turn on specific EIO ports
@@ -1471,7 +1445,7 @@ int LabJackU6Device::findNearestNeighbourIndex( double value, const std::vector<
     
     return idx;
 }
-
+// to interpolate voltage and LED strength
 vector<double> LabJackU6Device::interp1( const std::vector< double > &x, const std::vector< double > &y, const std::vector< double > &x_new )
 {
     std::vector< double > y_new;
@@ -1514,13 +1488,15 @@ int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<doub
     //char hostname[1024];
     
     //gethostname(hostname, 1024);
-    
-    
-    if (strcmp(optic_device->getValue().getString(), "led")==0) {
+    //if (strcmp(optic_device->getValue().getString(), "led")==0) {
+
+    if (optic_device->getValue().getString() == "led") {
         inname = "/Users/hullglick/Documents/Calibration_Table/led.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
+    //} else if (strcmp(optic_device->getValue().getString(), "laserblue")==0){
+    } else if (optic_device->getValue().getString() == "laserblue"){
         inname = "/Users/hullglick/Documents/Calibration_Table/laserblue.txt";
-    } else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
+    //} else if (strcmp(optic_device->getValue().getString(), "lasergreen")==0){
+    } else if (optic_device->getValue().getString() == "lasergreen"){
         inname = "/Users/hullglick/Documents/Calibration_Table/lasergreen.txt";
     }
     mprintf("Calibration file name is: %s\n",inname);
@@ -1587,17 +1563,18 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
         //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
         //mprintf("The running criteria is %lld.", Qpulse_criteria->getValue().getInteger());
         if (Qbin_sum >= running_criteria->getValue().getInteger()) {
-            start_CB->setValue(true);
             start_CB_running->setValue(true);
+            start_CB_still->setValue(false);
             QBinValue.erase(QBinValue.begin(),QBinValue.begin()+QBinValue.size());
             //mprintf("Qbin_sum is %d and the QbinSize is %lu", Qbin_sum, QBinValue.size());
             //mprintf("The stimulus should start now and the current time is %lld.", clock->getCurrentTimeUS());
-        } else if (Qbin_sum == 0 && QBinValue.size()==6){
-            start_CB->setValue(true);
-            //start_CB_running->setValue(false);
+        } else if (Qbin_sum == 0 && QBinValue.size() >= (still_duration->getValue().getInteger()*1000/Qbin_timeUS->getValue().getInteger())){
+            // if still longer than required also make sure Qbin_timeUs is same as wheelspeed interval
+            start_CB_still->setValue(true);
+            start_CB_running->setValue(false);
         } else
-            start_CB->setValue(false);
-            //start_CB_running->setValue(false);
+            start_CB_still->setValue(false);
+            start_CB_running->setValue(false);
 
     }
     
@@ -1606,6 +1583,10 @@ void LabJackU6Device::runningCriteria(bool checkRunning) {
 void LabJackU6Device::calculateWheelSpeed() {
     
     double speed;
+    long binSizeStill;
+    long binSizeRun;
+    int speed_sum = 0; int binIdx = 0;
+    
     shared_ptr <Clock> clock = Clock::instance();
     
     if (clock->getCurrentTimeUS() -  QTime2US >= ws_durationUS->getValue().getInteger()) {
@@ -1614,12 +1595,47 @@ void LabJackU6Device::calculateWheelSpeed() {
         speed = (quadrature->getValue().getInteger() - lastQuadratureValue)*1000000/ws_durationUS->getValue().getInteger();
         
         wheel_speed->setValue(speed);
+        if (doCB->getValue().getBool()==true) {
+            WheelSpeedArray.push_back(speed);
+            
+            binSizeStill = (still_duration->getValue().getInteger()*1000/ws_durationUS->getValue().getInteger());
+            binSizeRun = (running_duration->getValue().getInteger()*1000/ws_durationUS->getValue().getInteger());
+            
+            if (speed >= running_criteria->getValue().getInteger() && WheelSpeedArray.size() >= binSizeRun && !start_CB_running->getValue().getBool()) {
+                std::vector<int> temp_speed(WheelSpeedArray.end() - binSizeRun + 1, WheelSpeedArray.end());
+                for (int n:temp_speed) {
+                    speed_sum += n;
+                    ++binIdx;
+                }
+                if (speed_sum/binIdx >= running_criteria->getValue().getInteger()) {
+                    start_CB_running->setValue(true);
+                    WheelSpeedArray.clear();
+                    
+                } else {
+                    start_CB_running->setValue(false);
+                }
+                
+                
+            }
+            
+            if (speed==0 && WheelSpeedArray.size() >= binSizeStill && !start_CB_still->getValue().getBool()) {
+                std::vector<int> temp_speed(WheelSpeedArray.end() - binSizeStill + 1, WheelSpeedArray.end());
+                for (int n:temp_speed) {
+                    speed_sum += abs(n);
+                }
+                if (speed_sum == 0) {
+                    start_CB_still->setValue(true);
+                    WheelSpeedArray.clear();
+                }
+                
+            }
+        }
         //mprintf("*****Quadrature = %d *******", quadrature->getValue().getInteger());
         //mprintf("*****LastQuadrature = %d *******", lastBinQuadratureValue);
         //mprintf("*****wheelSpeed = %f *******", speed);
         lastQuadratureValue = quadrature->getValue().getInteger();
     }
-
+    
     
 }
 

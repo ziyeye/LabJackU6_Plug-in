@@ -31,6 +31,7 @@
 #undef VERBOSE_IO_DEVICE
 #define VERBOSE_IO_DEVICE 0  // verbosity level is 0-2, 2 is maximum
 
+// change sampling time to 500 when using alternating two LEDs
 #define LJU6_DITASK_UPDATE_PERIOD_US 1000    // "sampling time" in MWorks, not going faster than this?
 #define LJU6_DITASK_WARN_SLOP_US     500000000
 #define LJU6_DITASK_FAIL_SLOP_US     500000000
@@ -38,7 +39,7 @@
 // Strobed_word output: Use a 8-bit word; EIO0-7, all encoded below
 #define LJU6_REWARD_FIO         0
 #define LJU6_LEVER1_FIO         1
-#define LJU6_LED1_FIO           2
+#define LJU6_LED1_FIO           17
 #define LJU6_PUFF_FIO           2
 #define LJU6_LED2_FIO           3
 #define LJU6_TCPIN_OFFSET       4 // Timer offset pin
@@ -110,8 +111,10 @@ protected:
     boost::shared_ptr <Variable> Qbin_size;
     boost::shared_ptr <Variable> Qbin_timeUS;
     boost::shared_ptr <Variable> doCB;
-    boost::shared_ptr <Variable> start_CB;
+    boost::shared_ptr <Variable> start_CB_still;
+    boost::shared_ptr <Variable> still_duration;
     boost::shared_ptr <Variable> start_CB_running;
+    boost::shared_ptr <Variable> running_duration;
     boost::shared_ptr <Variable> running_criteria;
     boost::shared_ptr <Variable> Qpulse_criteria;
     boost::shared_ptr <Variable> checkrun;
@@ -130,6 +133,7 @@ protected:
     std::vector<double> pmw;
     
     std::vector<int> QBinValue;
+    std::vector<int> WheelSpeedArray;
     
 	// raw hardware functions
 	bool ljU6ConfigPorts(HANDLE Handle);
@@ -161,8 +165,10 @@ public:
     static const std::string QBIN_SIZE;
     static const std::string QBIN_TIMEUS;
     static const std::string DOCB;
-    static const std::string START_CB;
+    static const std::string START_CB_STILL;
+    static const std::string STILL_DURATION;
     static const std::string START_CB_RUNNING;
+    static const std::string RUNNING_DURATION;
     static const std::string RUNNING_CRITERIA;
     static const std::string QPULSE_CRITERIA;
     static const std::string CHECKRUN;
