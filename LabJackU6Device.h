@@ -24,7 +24,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <libusb-1.0/libusb.h>
 #include "u6.h"
 #include "labjackusb.h"
 

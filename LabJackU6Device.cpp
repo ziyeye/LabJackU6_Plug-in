@@ -689,6 +689,7 @@ bool LabJackU6Device::readLeverDI(bool *outLever1, bool *cameraState, bool *came
     
     if (ljU6ReadPorts(ljHandle, &fioState, &eioState, &cioState) != 0 ) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Error reading DI, stopping IO and returning FALSE");
+        lock.unlock();  // Release the driver lock, otherwise we may deadlock in stopDeviceIO
         stopDeviceIO();  // We are seeing USB errors causing this, and the U6 doesn't work anyway, so might as well stop the threads
         return false;
     }
@@ -968,7 +969,7 @@ bool LabJackU6Device::stopDeviceIO(){
     //stopAllScheduleNodes();								// IO device base class method -- this is thread safe
     if (pollScheduleNode != NULL) {
         //merror(M_IODEVICE_MESSAGE_DOMAIN, "Error: pulseDOL
-        boost::mutex::scoped_lock(pollScheduleNodeLock);
+        boost::mutex::scoped_lock lock(pollScheduleNodeLock);
         pollScheduleNode->cancel();
         //pollScheduleNode->kill();  // MH This is not allowed!  This can make both the USB bus unhappy and also leave the lock
         //    in a locked state.
@@ -1207,7 +1208,7 @@ long LabJackU6Device::ljU6ReadPorts(HANDLE Handle,
     //      recDataBuff[12], recDataBuff[13], recDataBuff[14]);
     
     // Unpack timer value (i.e. quadrature)
-    std::int32_t quadratureValue;
+    std::int32_t quadratureValue = 0;
     
     /* another way to extract
      //quadratureValue = recDataBuff[3] + recDataBuff[4]*256 + recDataBuff[5]*65536 + recDataBuff[6]*16777216;
@@ -1483,7 +1484,7 @@ vector<double> LabJackU6Device::interp1( const std::vector< double > &x, const s
 }
 
 int LabJackU6Device::loadLEDTable(std::vector<double> &voltage, std::vector<double> &pmw) {
-    char const *inname;
+    char const *inname = "";
     //FILE *infile;
     //char hostname[1024];
     
